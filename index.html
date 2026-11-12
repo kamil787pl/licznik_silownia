@@ -29,7 +29,7 @@ header h1 span{color:var(--acc)}
 #elapsed{font:700 18px 'Barlow Condensed';color:var(--acc)}
 .sync{font-size:11px;color:var(--mut);display:flex;align-items:center;gap:5px}
 .sync i{width:7px;height:7px;border-radius:50%;background:var(--mut);display:inline-block}
-.sync.ok i{background:var(--acc)}.sync.err i{background:var(--red)}
+.sync.ok i{background:var(--acc)}.sync.off i{background:var(--acc2)}.sync.off span{color:var(--acc2)}@media(max-width:480px){.sync.off span{display:inline!important;font-weight:700}}.sync.err i{background:var(--red)}
 main{max-width:640px;margin:0 auto;padding:14px 14px 170px}
 nav{position:fixed;bottom:0;left:0;right:0;z-index:6;display:flex;background:#12151b;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;color:var(--mut);padding:9px 2px 8px;font-weight:600;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -219,6 +219,7 @@ header h1{white-space:nowrap}
 .dayt .dplan{font-size:13px;font-weight:600;line-height:1.25}.dayt .drest{font-size:26px;line-height:32px}.dayt.sum{cursor:default;background:transparent;border-style:dashed}.dcount{font:700 32px/1 'Barlow Condensed';color:var(--acc)}
 .pletter.pbig{width:32px;height:32px;font-size:19px;border-radius:9px;display:block;line-height:32px;text-align:center;flex:none}
 .pletter{line-height:28px;text-align:center}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mgrid>div{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.mgrid b{display:block;font:700 26px/1.1 'Barlow Condensed';color:var(--acc)}.mgrid b.mtop{font-size:19px;line-height:29px;color:var(--txt)}.mgrid small{font-size:11px;color:var(--mut)}.mgrid i{font-style:normal;font-weight:700;margin-left:4px}.mgrid i.up{color:var(--acc)}.mgrid i.dn{color:var(--red)}
 .inline{width:90px}
 textarea{min-height:90px;font-size:12px}
 </style>
@@ -309,51 +310,71 @@ const SB_URL='https://vecgaschmlrptloncaby.supabase.co',SB_KEY='sb_publishable_d
 let sb=null;try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
 let user=null,guest=false,PROF=null,BW=[];
 const lsKey=()=>user?'gym_'+user.id:'gym_guest';
+const lsC=()=>lsKey()+'_c',lsS=()=>lsKey()+'_s',delKey=()=>lsKey()+'_del';
 const todayISO=()=>new Date().toLocaleDateString('sv-SE');
-function loadLocal(){S=normalize(null);SES=[];try{const o=JSON.parse(localStorage.getItem(lsKey())||'null');if(o){S=normalize(o.cfg);SES=o.ses||[]}else if(!user){const c=localStorage.getItem('gym_cfg');if(c){S=normalize(JSON.parse(c));SES=JSON.parse(localStorage.getItem('gym_ses')||'[]')}}}catch(e){}}
-function saveLocal(){try{localStorage.setItem(lsKey(),JSON.stringify({cfg:S,ses:SES}))}catch(e){}}
+const canCloud=()=>!!(user&&sb&&!ui.offUser);
+function readOld(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+function loadLocal(){S=normalize(null);SES=[];try{let c=localStorage.getItem(lsC()),se=localStorage.getItem(lsS());
+ if(c==null){const o=readOld(lsKey());if(o){c=JSON.stringify(o.cfg);se=JSON.stringify(o.ses||[])}else if(!user){c=localStorage.getItem('gym_cfg');se=localStorage.getItem('gym_ses')}}
+ if(c){S=normalize(JSON.parse(c));SES=JSON.parse(se||'[]')||[]}}catch(e){}}
+function saveLocal(all=true){try{localStorage.setItem(lsC(),JSON.stringify(S));if(all)localStorage.setItem(lsS(),JSON.stringify(SES))}catch(e){}}
 function setSync(st,txt){const el=$('#sync');if(!el)return;el.className='sync '+(st||'');el.querySelector('span').textContent=txt}
-const cw={busy:false,dirty:false,t:null};
-function touch(){S.updatedAt=Date.now();saveLocal();if(user){clearTimeout(cw.t);cw.t=setTimeout(flushCfg,800)}}
-async function flushCfg(){if(!user)return;if(cw.busy){cw.dirty=true;return}cw.busy=true;
- try{const{error}=await sb.from('app_state').upsert({user_id:user.id,config:S});setSync(error?'err':'ok',error?'błąd zapisu':'zapisano')}catch(e){setSync('err','offline')}
+const cw={busy:false,dirty:false,t:null,due:0,loading:false};
+function touch(soft){S.updatedAt=Date.now();saveLocal(false);if(!canCloud())return;const due=Date.now()+(soft?15000:800);if(!cw.t||due<cw.due){clearTimeout(cw.t);cw.due=due;cw.t=setTimeout(()=>{cw.t=null;flushCfg()},due-Date.now())}}
+async function flushCfg(){if(!canCloud())return;clearTimeout(cw.t);cw.t=null;if(cw.busy){cw.dirty=true;return}cw.busy=true;
+ try{const{error}=await sb.from('app_state').upsert({user_id:user.id,config:S});if(error)throw error;setSync('ok','zapisano')}catch(e){setSync('off','offline')}
  cw.busy=false;if(cw.dirty){cw.dirty=false;flushCfg()}}
 const wRow=s=>({id:s.id,user_id:user.id,name:s.name||'',started_at:new Date(s.start).toISOString(),ended_at:s.end?new Date(s.end).toISOString():null,data:s});
-async function putSession(s){saveLocal();if(!user)return;try{const{error}=await sb.from('workouts').upsert(wRow(s));if(error)setSync('err','błąd zapisu')}catch(e){setSync('err','offline')}}
-async function delSession(id){saveLocal();if(!user)return;try{await sb.from('workouts').delete().eq('id',id)}catch(e){}}
+async function putSession(s){saveLocal();if(!canCloud())return;try{const{error}=await sb.from('workouts').upsert(wRow(s));if(error)throw error}catch(e){setSync('off','offline')}}
+const getDel=()=>readOld(delKey())||[];
+async function delSession(id){saveLocal();if(!user)return;let ok=false;if(canCloud())try{const{error}=await sb.from('workouts').delete().eq('id',id);ok=!error}catch(e){}
+ if(!ok){const d=getDel();if(!d.includes(id))d.push(id);try{localStorage.setItem(delKey(),JSON.stringify(d))}catch(e){}}}
 async function loadCloud(){
- setSync('','wczytywanie…');
+ if(!canCloud()){setSync('off','offline');return}
+ if(cw.loading)return;cw.loading=true;setSync('','synchronizacja…');
  try{
-  const[st,wo,pr,bw]=await Promise.all([sb.from('app_state').select('config').maybeSingle(),sb.from('workouts').select('data').order('started_at',{ascending:true}).limit(2000),sb.from('profiles').select('*').maybeSingle(),sb.from('body_weights').select('id,measured_on,weight_kg').order('measured_on',{ascending:true})]);
+  const pd=getDel();if(pd.length){const{error}=await sb.from('workouts').delete().in('id',pd);if(!error)localStorage.removeItem(delKey())}
+  const[st,wo,pr,bw]=await Promise.all([sb.from('app_state').select('config').maybeSingle(),sb.from('workouts').select('data').order('started_at',{ascending:true}).limit(5000),sb.from('profiles').select('*').maybeSingle(),sb.from('body_weights').select('id,measured_on,weight_kg').order('measured_on',{ascending:true})]);
   if(st.error||wo.error)throw st.error||wo.error;
   PROF=pr.data||{id:user.id,display_name:'',avatar_emoji:'💪',avatar_color:'#c6f432'};BW=bw.data||[];
-  if(st.data&&st.data.config&&(st.data.config.updatedAt||0)>=(S.updatedAt||0))S=normalize(st.data.config);else await flushCfg();
-  const ids=new Set();(wo.data||[]).forEach(r=>{ids.add(r.data.id);if(!SES.find(s=>s.id===r.data.id))SES.push(r.data)});
-  const miss=SES.filter(s=>!ids.has(s.id));if(miss.length)await sb.from('workouts').upsert(miss.map(wRow));
-  saveLocal();setSync('ok','w chmurze');
- }catch(e){setSync('err','offline – zapis lokalny')}
+  try{localStorage.setItem(lsKey()+'_p',JSON.stringify({PROF,BW}))}catch(e){}
+  if(st.data&&st.data.config&&(st.data.config.updatedAt||0)>=(S.updatedAt||0)){const act=S.active;S=normalize(st.data.config);if(act&&!S.active)S.active=act}else await flushCfg();
+  const ids=new Set();(wo.data||[]).forEach(r=>{if(pd.includes(r.data.id))return;ids.add(r.data.id);if(!SES.find(s=>s.id===r.data.id))SES.push(r.data)});
+  const miss=SES.filter(s=>!ids.has(s.id));if(miss.length){const{error}=await sb.from('workouts').upsert(miss.map(wRow));if(error)throw error}
+  saveLocal();setSync('ok',miss.length?'wysłano '+miss.length+' '+pl(miss.length,'trening','treningi','treningów'):'zsynchronizowano');
+ }catch(e){setSync('off','offline')}
+ cw.loading=false;
 }
 async function boot(){
- if(!sb){guest=true;startApp();return}
- let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
+ const lu=readOld('gym_last_user');
+ if(!sb){if(lu){ui.offUser=true;await enterUser(lu);return}guest=true;startApp();return}
+ let session=null,err=null;try{const r=await sb.auth.getSession();session=r.data.session;err=r.error}catch(e){err=e}
  if(session)await enterUser(session.user);
+ else if(lu&&(err||!navigator.onLine)){ui.offUser=true;await enterUser(lu)}
  else if(localStorage.getItem('gym_mode')==='guest'){guest=true;startApp()}
  else showAuth();
  sb.auth.onAuthStateChange((ev,ses)=>{
   if(ev==='PASSWORD_RECOVERY')setTimeout(showNewPass,300);
-  if(ev==='SIGNED_OUT'){user=null;PROF=null;BW=[];S.active=null;showAuth()}
+  if(ev==='SIGNED_OUT'&&navigator.onLine){try{localStorage.removeItem('gym_last_user')}catch(e){}user=null;PROF=null;BW=[];S.active=null;ui.offUser=false;showAuth()}
   if(ev==='SIGNED_IN'&&ses&&(!user||user.id!==ses.user.id))enterUser(ses.user);
  });
 }
+async function goOnline(){if(!user||!sb)return;
+ if(ui.offUser){let ses=null;try{ses=(await sb.auth.getSession()).data.session}catch(e){}if(!ses){setSync('err','zaloguj się ponownie');return}if(ses.user.id!==user.id)return;user=ses.user;ui.offUser=false}
+ await loadCloud();render()}
+window.addEventListener('online',()=>setTimeout(goOnline,800));
+window.addEventListener('offline',()=>{if(user)setSync('off','offline');if(S.active)toast('Brak internetu – trening zapisuje się w telefonie')});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){saveLocal();if(cw.t)flushCfg()}else if(user&&navigator.onLine&&(ui.offUser||$('#sync.off')))goOnline()});
 async function enterUser(u){
- user=u;guest=false;try{localStorage.removeItem('gym_mode')}catch(e){}
- const had=!!localStorage.getItem(lsKey());loadLocal();
- if(!had){try{const g=JSON.parse(localStorage.getItem('gym_guest')||'null');if(g){S=normalize(g.cfg);S.updatedAt=0;SES=g.ses||[]}}catch(e){}}
+ user=u;guest=false;try{localStorage.removeItem('gym_mode');localStorage.setItem('gym_last_user',JSON.stringify({id:u.id,email:u.email||''}))}catch(e){}
+ const had=localStorage.getItem(lsC())!=null||localStorage.getItem(lsKey())!=null;loadLocal();
+ if(!had){try{const gc=localStorage.getItem('gym_guest_c'),g=gc?{cfg:JSON.parse(gc),ses:JSON.parse(localStorage.getItem('gym_guest_s')||'[]')}:readOld('gym_guest');if(g){S=normalize(g.cfg);S.updatedAt=0;SES=g.ses||[]}}catch(e){}}
+ const cp=readOld(lsKey()+'_p');if(cp){PROF=cp.PROF;BW=cp.BW||[]}
  startApp();await loadCloud();
  if(S.setupDone&&ui.tab==='gear'&&!ui.touchedGear)ui.tab='train';
  render();
 }
-function startApp(){if(!user)loadLocal();document.body.classList.remove('auth');ui.tab=S.setupDone?'train':'gear';setSync(user?'':'',user?'':'tylko to urządzenie');render()}
+function startApp(){if(!user)loadLocal();document.body.classList.remove('auth');ui.tab=S.setupDone?'train':'gear';setSync(user?(ui.offUser?'off':''):'',user?(ui.offUser?'offline':''):'tylko to urządzenie');render()}
 let authMode='login';
 function showAuth(msg){
  document.body.classList.add('auth');$('#nav').innerHTML='';closeModal();
@@ -628,6 +649,26 @@ function weekStart(t){const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDat
 function daysAgo(t){const a=new Date();a.setHours(0,0,0,0);const b=new Date(t);b.setHours(0,0,0,0);return Math.round((a-b)/864e5)}
 const agoTxt=n=>n===0?'dziś':n===1?'wczoraj':n+' dni temu';
 function planInfo(p){const sets=p.items.reduce((a,it)=>a+it.sets,0);const min=Math.round(sets*(S.settings.rest+40)/60);const mus=[...new Set(p.items.map(it=>(getEx(it.exId)||{}).muscle).filter(Boolean))];const last=SES.filter(s=>s.planId===p.id).sort((a,b)=>b.start-a.start)[0];return{sets,min,mus,last}}
+function monthStats(y,m){const a=new Date(y,m,1).getTime(),b=new Date(y,m+1,1).getTime(),ss=SES.filter(s=>s.start>=a&&s.start<b);
+ const vol=ss.reduce((x,s)=>x+sesVol(s),0),sets=ss.reduce((x,s)=>x+s.entries.reduce((q,e)=>q+work(e.sets).length,0),0),time=ss.reduce((x,s)=>x+Math.max(0,(s.end||s.start)-s.start),0);
+ const mus={};ss.forEach(s=>s.entries.forEach(e=>{const k=(getEx(e.exId)||{}).muscle||'Inne';mus[k]=(mus[k]||0)+work(e.sets).length}));const top=Object.entries(mus).sort((p,q)=>q[1]-p[1])[0];
+ const best={},prList=[];let prs=0;SES.slice().sort((p,q)=>p.start-q.start).forEach(s=>s.entries.forEach(e=>{if(isTime(getEx(e.exId)))return;const v=Math.max(0,...work(e.sets).map(x=>e1(x.kg,x.reps))),pb=best[e.exId]||0;if(v>pb){if(pb>0&&s.start>=a&&s.start<b){prs++;prList.push(e.exId)}best[e.exId]=v}}));
+ return{n:ss.length,vol,sets,time,top,prs,prList:[...new Set(prList)]}}
+function vMonth(){const d=new Date();let y=d.getFullYear(),m=d.getMonth(),cur=monthStats(y,m);
+ if(!cur.n){const py=m?y:y-1,pm=m?m-1:11,p=monthStats(py,pm);if(!p.n)return'';y=py;m=pm;cur=p}
+ const isCur=y===d.getFullYear()&&m===d.getMonth(),prev=monthStats(m?y:y-1,m?m-1:11);
+ const nm=new Date(y,m,15).toLocaleDateString('pl-PL',{month:'long'}),Nm=nm.charAt(0).toUpperCase()+nm.slice(1);
+ const dv=prev.vol&&isCur?Math.round((cur.vol-prev.vol)/prev.vol*100):null,dn=cur.n-prev.n,hrs=cur.time/36e5;
+ const tag=(v,suf='')=>v==null?'':`<i class="${v>=0?'up':'dn'}">${v>0?'+':''}${v}${suf}</i>`;
+ return `<div class="lbl">${Nm} w liczbach${isCur?'':' · poprzedni miesiąc'}</div><div class="card"><div class="mgrid">
+ <div><b>${cur.n}</b><small>${pl(cur.n,'trening','treningi','treningów')}${prev.n&&isCur?tag(dn):''}</small></div>
+ <div><b>${cur.vol>=1e4?fmt(Math.round(cur.vol/100)/10)+' t':fmt(Math.round(cur.vol))}</b><small>${cur.vol>=1e4?'podniesione':'kg podniesione'}${tag(dv,'%')}</small></div>
+ <div><b>${hrs>=1?fmt(Math.round(hrs*10)/10)+' h':Math.round(hrs*60)+' min'}</b><small>na siłowni</small></div>
+ <div><b>${cur.sets}</b><small>${pl(cur.sets,'seria','serie','serii')}</small></div>
+ <div><b>${cur.prs}</b><small>🏆 ${pl(cur.prs,'rekord','rekordy','rekordów')}</small></div>
+ <div><b class="mtop">${cur.top?esc(cur.top[0]):'–'}</b><small>najczęściej</small></div></div>
+ ${cur.prList.length?`<div class="small muted" style="margin-top:10px">🏆 ${cur.prList.slice(0,4).map(id=>esc(exName(id))).join(', ')}${cur.prList.length>4?' i inne':''}</div>`:''}
+ ${prev.n&&isCur?`<div class="small muted" style="margin-top:6px">Zmiany względem całego poprzedniego miesiąca.</div>`:''}</div>`}
 function vHome(){
  const now=Date.now(),ws=weekStart(now),wk=SES.filter(s=>s.start>=ws),last=SES.slice().sort((a,b)=>b.start-a.start)[0];
  const wkVol=wk.reduce((a,s)=>a+sesVol(s),0),wkSets=wk.reduce((a,s)=>a+s.entries.reduce((b,e)=>b+e.sets.length,0),0);
@@ -655,6 +696,7 @@ function vHome(){
   <div class="meta"><span>🏋️ ${nx.items.length} ${pl(nx.items.length,"ćwiczenie","ćwiczenia","ćwiczeń")}</span><span>🔁 ${pi.sets} ${pl(pi.sets,"seria","serie","serii")}</span><span>⏱ ok. ${pi.min} min</span></div>
   ${pi.mus.length?`<div class="chips wrap" style="margin:8px 0 4px">${pi.mus.map(m=>`<span class="tag">${esc(m)}</span>`).join('')}</div>`:''}
   <button class="primary big wide" style="margin-top:10px" data-act="start" data-id="${nx.id}">▶ Rozpocznij trening</button></div>`}
+ h+=vMonth();
  // szybkie akcje
  const ICAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2"/></svg>';
  const QA=[['start','','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>','Pusty trening'],['quickPlan','','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>','Nowy plan'],['tab','sched',ICAL,'Harmonogram'],['tab','ex',NAVIC.ex,'Ćwiczenia'],['exNew','','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h2M19 12h2M5 8v8M8 6v12M16 6v12M19 8v8M8 12h8"/></svg>','Własne ćwiczenie'],['tab','prog',NAVIC.prog,'Postępy'],['quickHist','',`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,'Historia'],['tab','gear',NAVIC.gear,'Sprzęt'],['tab','profile','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>','Profil']];
@@ -720,7 +762,7 @@ setInterval(()=>{if(rest){if(Date.now()>=rest.end){rest=null;renderRest();beep()
  if(ui.sw&&ui.sw.on){const v=$('#swv'),A=S.active;if(A&&A.entries[ui.sw.e]){const sec=ui.sw.base+Math.floor((Date.now()-ui.sw.t0)/1000),tg=A.entries[ui.sw.e].target.reps;if(v)v.textContent=mmss(sec);if(!ui.sw.hit&&sec>=tg){ui.sw.hit=true;beep(2);flash('⏱')}}}
  const el=$('#elapsed');el.textContent=S.active?mmss(Math.floor((Date.now()-S.active.start)/1000)):''},250);
 let ftm;function flash(html,cls){const f=$('#flash');f.className='';void f.offsetWidth;f.innerHTML=`<div class="fx">${html}</div>`;f.className='on '+(cls||'');clearTimeout(ftm);ftm=setTimeout(()=>{f.className='';f.innerHTML=''},cls==='pr'?2300:950)}
-function swipeEx(dir){swStop();const A=S.active;if(!A||!A.sel)return;const i=A.sel.e+dir;if(i<0||i>=A.entries.length)return;const e=A.entries[i];const j=e.sets.findIndex(s=>!s.done);A.sel={e:i,s:j>=0?j:Math.max(0,e.sets.length-1)};ui.slide=dir;touch();render()}
+function swipeEx(dir){swStop();const A=S.active;if(!A||!A.sel)return;const i=A.sel.e+dir;if(i<0||i>=A.entries.length)return;const e=A.entries[i];const j=e.sets.findIndex(s=>!s.done);A.sel={e:i,s:j>=0?j:Math.max(0,e.sets.length-1)};ui.slide=dir;touch(1);render()}
 let tsx=null,tsy=0;
 document.addEventListener('touchstart',ev=>{tsx=ev.target.closest('.excard')&&ev.touches.length===1?ev.touches[0].clientX:null;if(tsx!=null)tsy=ev.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',ev=>{if(tsx==null)return;const t=ev.changedTouches[0],dx=t.clientX-tsx,dy=t.clientY-tsy;tsx=null;if(Math.abs(dx)>70&&Math.abs(dy)<60)swipeEx(dx<0?1:-1)},{passive:true});
@@ -953,29 +995,29 @@ const ACT={
   const{error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});msg.className='amsg '+(error?'err':'ok');msg.textContent=error?authErr(error):'Wysłaliśmy link do zmiany hasła na '+em+'.'},
  pwChange:()=>showNewPass(),
  pwSave:async()=>{const p=$('#np').value;if(p.length<6){toast('Hasło musi mieć min. 6 znaków');return}const{error}=await sb.auth.updateUser({password:p});closeModal();toast(error?authErr(error):'Hasło zmienione')},
- logout:()=>ask('Wylogować się?','Dane zostaną na Twoim koncie.','Wyloguj',async()=>{await flushCfg();await sb.auth.signOut()}),
+ logout:()=>{if(!navigator.onLine){toast('Wylogowanie wymaga internetu');return}ask('Wylogować się?','Dane zostaną na Twoim koncie.','Wyloguj',async()=>{await flushCfg();await sb.auth.signOut()})},
  pEmoji:d=>{ui.prof.avatar_emoji=d.v;render()},
  pColor:d=>{ui.prof.avatar_color=d.v;render()},
  pSex:d=>{ui.prof.sex=d.v;render()},
- profSave:async()=>{const P=ui.prof,hcm=P.height_cm?num(P.height_cm):null;
+ profSave:async()=>{if(!canCloud()||!navigator.onLine){toast('Brak połączenia – spróbuj, gdy będziesz online');return}const P=ui.prof,hcm=P.height_cm?num(P.height_cm):null;
   if(hcm&&(hcm<80||hcm>260)){toast('Wzrost w zakresie 80–260 cm');return}
   const row={display_name:(P.display_name||'').trim().slice(0,40),avatar_emoji:EMOJI.includes(P.avatar_emoji)?P.avatar_emoji:'💪',avatar_color:safeColor(P.avatar_color),height_cm:hcm||null,birth_date:P.birth_date||null,sex:['M','K','I'].includes(P.sex)?P.sex:null};
   const{error}=await sb.from('profiles').update(row).eq('id',user.id);if(error){toast('Nie zapisano: '+error.message);return}
   PROF=Object.assign(PROF||{},row);ui.prof=null;toast('Profil zapisany');render()},
- bwAdd:async()=>{const kg=num($('#bwKg').value),d=$('#bwDate').value||todayISO();if(kg<20||kg>400){toast('Podaj wagę 20–400 kg');return}
+ bwAdd:async()=>{if(!canCloud()||!navigator.onLine){toast('Brak połączenia – spróbuj, gdy będziesz online');return}const kg=num($('#bwKg').value),d=$('#bwDate').value||todayISO();if(kg<20||kg>400){toast('Podaj wagę 20–400 kg');return}
   const{data,error}=await sb.from('body_weights').upsert({user_id:user.id,measured_on:d,weight_kg:kg},{onConflict:'user_id,measured_on'}).select('id,measured_on,weight_kg').single();
   if(error){toast('Nie zapisano: '+error.message);return}BW=BW.filter(x=>x.measured_on!==d);BW.push(data);BW.sort((a,b)=>a.measured_on<b.measured_on?-1:1);toast('Zapisano pomiar');render()},
- bwDel:async d=>{const{error}=await sb.from('body_weights').delete().eq('id',d.id);if(!error){BW=BW.filter(x=>x.id!==d.id);render()}},
+ bwDel:async d=>{if(!canCloud()||!navigator.onLine){toast('Brak połączenia – spróbuj, gdy będziesz online');return}const{error}=await sb.from('body_weights').delete().eq('id',d.id);if(!error){BW=BW.filter(x=>x.id!==d.id);render()}},
  quickPlan:()=>{ui.tab='plans';ui.plan={id:nid(),name:'Nowy plan',items:[]};render();window.scrollTo(0,0)},
  planEditHome:d=>{ui.tab='plans';ui.plan=clone(S.plans.find(p=>p.id===d.id));render();window.scrollTo(0,0)},
  quickHist:()=>{ui.tab='prog';render();setTimeout(()=>{const el=[...document.querySelectorAll('.lbl')].find(x=>/Historia/.test(x.textContent));el&&el.scrollIntoView({behavior:'smooth'})},30)},
  progGo:d=>{ui.tab='prog';ui.progEx=d.id;ui.pt=null;render();window.scrollTo(0,0)},
  confirm:()=>{const f=ui.confirmFn;closeModal();f&&f()},
  start:d=>{if(S.active){toast('Trening już trwa');return}startWorkout(d.id||null);window.scrollTo(0,0)},
- selEx:d=>{swStop();const A=A_(),e=A.entries[+d.i];const i=e.sets.findIndex(s=>!s.done);A.sel={e:+d.i,s:i>=0?i:Math.max(0,e.sets.length-1)};touch();render()},
- selSet:d=>{swStop();S.active.sel.s=+d.i;touch();render()},
- rep:d=>{const st=curSet();st.reps=Math.max(0,st.reps+(+d.v));if(+d.v>0)try{navigator.vibrate&&navigator.vibrate(15)}catch(e){};touch();render()},
- repSet:d=>{curSet().reps=+d.v;touch();render()},
+ selEx:d=>{swStop();const A=A_(),e=A.entries[+d.i];const i=e.sets.findIndex(s=>!s.done);A.sel={e:+d.i,s:i>=0?i:Math.max(0,e.sets.length-1)};touch(1);render()},
+ selSet:d=>{swStop();S.active.sel.s=+d.i;touch(1);render()},
+ rep:d=>{const st=curSet();st.reps=Math.max(0,st.reps+(+d.v));if(+d.v>0)try{navigator.vibrate&&navigator.vibrate(15)}catch(e){};touch(1);render()},
+ repSet:d=>{curSet().reps=+d.v;touch(1);render()},
  editLoad:()=>{const e=curEntry(),ex=getEx(e.exId),si=S.active.sel.s;openLoader(ex,e.sets[si].cfg,cfg=>{const kg=calcKg(ex,cfg);e.sets.forEach((s,i)=>{if(i===si||(i>si&&!s.done)){s.cfg=clone(cfg);s.kg=kg}});touch();render()})},
  doneSet:()=>{try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume&&actx.resume()}catch(e){}
   swStop();const A=A_(),e=curEntry(),st=curSet(),ex=getEx(e.exId)||{};
@@ -1000,14 +1042,14 @@ const ACT={
   if(!ws.length){toast('Ciężar jest za mały na rozgrzewkę');return}
   e.sets.unshift(...ws);A.sel.s=0;toast('Dodano '+ws.length+' '+pl(ws.length,'serię','serie','serii')+' rozgrzewkowe');touch();render()},
  swToggle:()=>{const A=A_(),st=curSet(),e=curEntry();try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume&&actx.resume()}catch(x){}
-  if(ui.sw&&ui.sw.on){swStop();touch()}else{rest=null;renderRest();ui.sw={on:true,t0:Date.now(),base:st.reps,e:A.sel.e,s:A.sel.s,hit:st.reps>=e.target.reps}}render()},
- swAdj:d=>{const st=curSet();if(ui.sw&&ui.sw.on)ui.sw.base=Math.max(0,ui.sw.base+(+d.v));else st.reps=Math.max(0,st.reps+(+d.v));touch();render()},
- swReset:()=>{ui.sw=null;curSet().reps=0;touch();render()},
+  if(ui.sw&&ui.sw.on){swStop();touch(1)}else{rest=null;renderRest();ui.sw={on:true,t0:Date.now(),base:st.reps,e:A.sel.e,s:A.sel.s,hit:st.reps>=e.target.reps}}render()},
+ swAdj:d=>{const st=curSet();if(ui.sw&&ui.sw.on)ui.sw.base=Math.max(0,ui.sw.base+(+d.v));else st.reps=Math.max(0,st.reps+(+d.v));touch(1);render()},
+ swReset:()=>{ui.sw=null;curSet().reps=0;touch(1);render()},
  ldAuto:()=>{const v=num($('#ldT').value);if(v<=0){toast('Wpisz docelowy ciężar');return}const c=nearestCfg(L.ex,L.cfg,v);if(!c){toast('Nie da się złożyć tego ciężaru z Twojego sprzętu');return}L.cfg=c;if(!L.cfg.plates)L.cfg.plates=[];const k=calcKg(L.ex,c);renderLoader();if(Math.abs(k-v)>1e-6)toast('Najbliżej możliwe: '+fmt(k)+' kg')},
  pSS:d=>{const it=ui.plan.items[+d.i];it.ss=!it.ss;render()},
  csvCopy:()=>{const t=buildCSV('\t');navigator.clipboard.writeText(t).then(()=>toast('Skopiowano – wklej do Excela lub Arkuszy Google'),()=>toast('Nie udało się skopiować'))},
  csvDl:()=>{try{const b=new Blob(['﻿'+buildCSV(';')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='licznik-silownia-'+todayISO()+'.csv';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}catch(e){toast('Pobieranie niedostępne – użyj „Kopiuj”')}},
- applySugg:()=>{const A=A_(),e=curEntry(),ex=getEx(e.exId),sg=suggestion(e,A);if(!sg)return;const si=A.sel.s;e.sets.forEach((s,i)=>{if(i===si||(i>si&&!s.done)){s.cfg=clone(sg.cfg);s.kg=sg.kg}});toast('Założono '+fmt(sg.kg)+' kg');touch();render()},
+ applySugg:()=>{const A=A_(),e=curEntry(),ex=getEx(e.exId),sg=suggestion(e,A);if(!sg)return;const si=A.sel.s;e.sets.forEach((s,i)=>{if(i===si||(i>si&&!s.done)){s.cfg=clone(sg.cfg);s.kg=sg.kg}});toast('Założono '+fmt(sg.kg)+' kg');touch(1);render()},
  addSet:()=>{const e=curEntry(),l=e.sets[e.sets.length-1];e.sets.push({cfg:clone(l?l.cfg:defaultCfg(getEx(e.exId))),kg:l?l.kg:0,reps:0,done:false});S.active.sel.s=e.sets.length-1;touch();render()},
  rmSet:d=>{const A=A_(),e=curEntry();e.sets.splice(+d.i,1);if(!e.sets.length){A.entries.splice(A.sel.e,1);A.sel=nextSel(Object.assign(A,{sel:null}))}else A.sel.s=Math.min(A.sel.s,e.sets.length-1);touch();render()},
  rmEntry:()=>ask('Usunąć ćwiczenie?','Ćwiczenie i jego serie zostaną usunięte z tego treningu.','Usuń',()=>{const A=A_();A.entries.splice(A.sel.e,1);A.sel=null;A.sel=nextSel(A);touch();render()},true),
@@ -1115,6 +1157,7 @@ document.addEventListener('input',ev=>{const t=ev.target;
  if(t.dataset.in==='exMax')ui.exEdit.max=Math.max(ui.exEdit.step||5,num(t.value));});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.sched!=null){S.schedule[t.dataset.sched]=t.value||null;touch();toast('Harmonogram zapisany');return}if(t.dataset.bar){const b=S.bars.find(x=>x.id===t.dataset.bar);if(!b)return;if(t.dataset.k==='kg')b.kg=num(t.value);else b.name=t.value||'Gryf';touch()}});
 
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 $('#view').innerHTML='<div class="empty" style="padding-top:80px">Wczytywanie…</div>';
 boot();
 </script>
