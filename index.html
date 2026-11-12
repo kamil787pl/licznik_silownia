@@ -16,7 +16,11 @@
 :root{--bg:#0f1115;--card:#181b22;--card2:#21252e;--line:#2a2f3a;--txt:#eef1f5;--mut:#8b93a1;--acc:#c6f432;--acc-ink:#11140a;--acc2:#ff8a2a;--red:#ff5d5d;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 Inter,system-ui,-apple-system,sans-serif}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+html,body{overscroll-behavior-y:none}
+header h1[data-act]{cursor:pointer}
+#nav button.live{position:relative}#nav button.live::after{content:'';position:absolute;top:6px;left:calc(50% + 9px);width:9px;height:9px;border-radius:50%;background:var(--acc2);box-shadow:0 0 0 3px #12151b;animation:blink 1.4s infinite}@keyframes blink{50%{opacity:.35}}
+@media (pointer:coarse){input,select,textarea{font-size:16px}}
 input,select,textarea{font:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
 input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
 header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;background:rgba(15,17,21,.93);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
@@ -220,7 +224,7 @@ textarea{min-height:90px;font-size:12px}
 </style>
 </head>
 <body>
-<header><h1>Licznik <span>siłownia</span></h1><span id="elapsed"></span><span class="sync" id="sync"><i></i><span></span></span><button id="me" data-act="tab" data-v="profile" aria-label="Profil"></button></header>
+<header><h1 data-act="home" role="button" title="Strona główna">Licznik <span>siłownia</span></h1><span id="elapsed"></span><span class="sync" id="sync"><i></i><span></span></span><button id="me" data-act="tab" data-v="profile" aria-label="Profil"></button></header>
 <main id="view"></main>
 <div id="rest"></div>
 <nav id="nav"></nav>
@@ -506,7 +510,7 @@ function loadVisual(ex,c,inter){
  return stackSVG(ex,c.pin||0,inter);
 }
 /* ---------- modal / kreator obciążenia ---------- */
-function modal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.classList.add('on')}
+function modal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.classList.add('on');navGuard()}
 function closeModal(){const m=$('#modal');m.classList.remove('on');m.innerHTML='';L=null;ui.pick=null}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 function ask(title,text,okLabel,fn,danger){ui.confirmFn=fn;modal(`<h3>${esc(title)}</h3><p class="muted">${text}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Anuluj</button><button class="primary" ${danger?'style="background:var(--red);color:#fff"':''} data-act="confirm">${esc(okLabel)}</button></div>`)}
@@ -906,16 +910,39 @@ function render(){
  const v={sched:vSched,train:vTrain,plans:vPlans,ex:vEx,prog:vProg,gear:vGear,profile:vProfile}[ui.tab]();
  const me=$('#me');me.innerHTML=user&&PROF?`<span class="av" style="background:${safeColor(PROF.avatar_color)}">${esc(PROF.avatar_emoji||'💪')}</span>`:'<span class="av guest">?</span>';
  $('#view').innerHTML=v;
+ navGuard();
+ const tb=$('#nav [data-v=train]');if(tb)tb.classList.toggle('live',!!S.active&&ui.tab!=='train');
  syncWake();
 }
 
 /* ---------- akcje ---------- */
+/* ---------- przycisk wstecz (telefon) i logo ---------- */
+let guard=false,lastBack=0;
+function navGuard(){if(guard||document.body.classList.contains('auth'))return;try{history.pushState({lg:1},'');guard=true}catch(e){}}
+function goBack(){
+ const m=$('#modal');
+ if(m.classList.contains('on')){
+  if(ui.exModal){ACT.exModalCancel();return true}
+  if(ui.pick&&ui.pick.mode==='edit'){ACT.edBack();return true}
+  if(ui.edit)ui.edit=null;closeModal();return true}
+ if(ui.plan){ui.plan=null;render();return true}
+ if(ui.exEdit){ui.exEdit=null;render();return true}
+ if(ui.tab==='sched'){ui.tab=ui.schedBack&&ui.schedBack!=='sched'?ui.schedBack:'train';render();window.scrollTo(0,0);return true}
+ if(ui.tab!=='train'){ui.tab='train';ui.pt=null;render();window.scrollTo(0,0);return true}
+ if(window.scrollY>200){window.scrollTo({top:0,behavior:'smooth'});return true}
+ return false}
+window.addEventListener('popstate',()=>{guard=false;if(document.body.classList.contains('auth'))return;
+ if(goBack()){navGuard();return}
+ if(Date.now()-lastBack<2200){try{history.back()}catch(e){}return}
+ lastBack=Date.now();toast(S.active?'Trening jest zapisany. Naciśnij „wstecz” jeszcze raz, aby wyjść':'Naciśnij „wstecz” jeszcze raz, aby wyjść');navGuard()});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#modal').classList.contains('on')){ev.preventDefault();goBack()}});
 const A_=()=>S.active;
 const curEntry=()=>{const A=A_();return A&&A.sel?A.entries[A.sel.e]:null};
 const curSet=()=>{const e=curEntry();return e?e.sets[S.active.sel.s]:null};
 const ACT={
  tab:d=>{if(d.v==='sched'&&ui.tab!=='sched')ui.schedBack=ui.tab;ui.tab=d.v;if(d.v==='profile')ui.prof=null;if(d.v==='gear')ui.touchedGear=true;ui.pt=null;closeModal();render();window.scrollTo(0,0)},
- close:()=>closeModal(),
+ close:()=>{if(ui.edit)ui.edit=null;closeModal()},
+ home:()=>{closeModal();ui.edit=null;ui.plan=null;ui.exEdit=null;ui.exModal=false;ui.tab='train';ui.pt=null;render();window.scrollTo({top:0,behavior:'smooth'})},
  schedDay:d=>renderSchedPick(+d.v),
  schedSet:d=>{S.schedule[+d.v]=d.id||null;touch();closeModal();toast(DAYSF[+d.v]+': '+(d.id?S.plans.find(p=>p.id===d.id).name:'odpoczynek'));render()},
  csvTile:()=>{ui.tab='prog';render();setTimeout(()=>{const b=$('[data-act=csvCopy]');b&&b.scrollIntoView({behavior:'smooth',block:'center'})},30)},
