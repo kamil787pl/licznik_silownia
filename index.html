@@ -222,6 +222,11 @@ header h1{white-space:nowrap}
 .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.mgrid>div{background:var(--card2);border-radius:12px;padding:10px 6px;text-align:center}.mgrid b{display:block;font:700 26px/1.1 'Barlow Condensed';color:var(--acc)}.mgrid b.mtop{font-size:19px;line-height:29px;color:var(--txt)}.mgrid small{font-size:11px;color:var(--mut)}.mgrid i{font-style:normal;font-weight:700;margin-left:4px}.mgrid i.up{color:var(--acc)}.mgrid i.dn{color:var(--red)}
 .pchips{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;margin:2px 0 8px}.pchips span{min-width:34px;padding:3px 7px;border-radius:7px;font:700 16px/1.1 'Barlow Condensed';box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.25)}.pchips i{font-style:normal;color:var(--mut);font-weight:700}.pchips em{font-style:normal;font-size:12px;color:var(--mut);margin-left:4px}
 .pkg{font:700 16px/1 'Barlow Condensed';color:var(--txt);margin-top:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:7px}.sw{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,.15);position:relative;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}.sw.on{outline:3px solid var(--acc);outline-offset:2px}
+.sw.auto{width:auto;padding:0 10px;border-radius:16px;background:var(--card2);font-size:12px;font-weight:700;color:var(--mut)}.sw.auto.on{color:var(--acc)}
+.sw.custom{display:grid;place-items:center;font-size:15px;background:conic-gradient(#d63031,#f2c200,#27a35a,#2d6cdf,#8e44ad,#d63031);cursor:pointer;overflow:hidden}.sw.custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:0}
+.addplate{padding:12px 0}.platedisc{padding:0;flex:none;border-radius:50%}.colrow{padding:4px 0 14px 52px;border-bottom:1px solid var(--line)}
+#npPrev{width:46px;height:46px;flex:none;display:grid;place-items:center}.npempty{width:42px;height:42px;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;color:var(--mut);font-weight:700}
 .inline{width:90px}
 textarea{min-height:90px;font-size:12px}
 </style>
@@ -269,8 +274,13 @@ const MUSCLES=['Klatka','Plecy','Nogi','Pośladki','Łydki','Barki','Biceps','Tr
 
 /* ---------- talerze ---------- */
 const PC={25:'#d63031',20:'#2d6cdf',15:'#f2c200',10:'#27a35a',5:'#eceff3',2.5:'#3b3d45',2:'#3b3d45',1.25:'#b8bec7',1:'#b8bec7',0.5:'#d9a7c7'};
-const pcol=k=>PC[k]||'#7d8591';
-const pink=k=>['5','15','1.25','1','0.5'].includes(String(k))?'#111':'#fff';
+let PCO=null;
+const pcol=k=>(PCO&&PCO[k])||((typeof S!=='undefined'&&S.plates&&S.plates.find(p=>p.kg===k))||{}).color||PC[k]||'#7d8591';
+function lum(h){const n=parseInt(String(h).slice(1),16);return .2126*((n>>16)/255)+.7152*((n>>8&255)/255)+.0722*((n&255)/255)}
+const pink=k=>lum(pcol(k))>.55?'#111':'#fff';
+const SWATCH=['#d63031','#2d6cdf','#f2c200','#27a35a','#eceff3','#3b3d45','#b8bec7','#ff8a2a','#8e44ad','#e84393','#16a085','#8d6e63'];
+function swatches(cur,act,v){return `<div class="swatches"><button class="sw auto ${!cur?'on':''}" data-act="${act}" data-v="${v}" data-c="" title="Standardowy kolor dla tej wagi">auto</button>${SWATCH.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" data-act="${act}" data-v="${v}" data-c="${c}" aria-label="kolor"></button>`).join('')}<label class="sw custom ${cur&&!SWATCH.includes(cur)?'on':''}" title="Własny kolor" ${cur&&!SWATCH.includes(cur)?`style="background:${cur}"`:''}><input type="color" data-colact="${act}" data-v="${v}" value="${cur||'#888888'}">🎨</label></div>`}
+function npPreview(){const kg=num(ui.npKg);if(!(kg>0))return `<span class="npempty">?</span>`;PCO={[kg]:ui.npColor||PC[kg]||'#7d8591'};const h=discSVG(kg,46);PCO=null;return h}
 const pw=k=>Math.max(7,Math.round(6+12*Math.sqrt(Math.min(k,25)/25)));
 const ph=k=>Math.round(36+96*Math.sqrt(Math.min(k,25)/25));
 
@@ -909,8 +919,8 @@ function vGear(){
  let h='';
  if(!S.setupDone)h+=`<div class="card welcome"><h3>Witaj! 👋</h3><div>Zacznij od ustawienia sprzętu, którym dysponujesz: talerzy, gryfów i hantli. Dzięki temu przy ćwiczeniach będziesz <b>wybierać obciążenie graficznie</b>, a aplikacja sama policzy ciężar.</div><button class="primary wide" style="margin-top:12px" data-act="setupDone">Gotowe – przejdź do treningu →</button></div>`;
  else h+=`<div class="hero"><h2>Sprzęt</h2><div class="muted">Co masz do dyspozycji – z tego budujesz obciążenie.</div></div>`;
- h+=`<div class="lbl">Talerze (sztuki łącznie)</div><div class="card" style="padding:4px 14px">${S.plates.slice().sort((a,b)=>b.kg-a.kg).map(p=>`<div class="item platerow">${discSVG(p.kg,42)}<div class="grow"><b>${fmt(p.kg)} kg</b><div class="small muted">${Math.floor(p.count/2)} ${pary(Math.floor(p.count/2))}</div></div><span class="stepper"><button data-act="plCnt" data-v="${p.kg}" data-d="-1">−</button><b>${p.count}</b><button data-act="plCnt" data-v="${p.kg}" data-d="1">+</button></span><button class="x" data-act="plRm" data-v="${p.kg}">×</button></div>`).join('')}
- <div class="item"><input class="inline" id="newPlate" inputmode="decimal" placeholder="kg"><button class="btn" data-act="plAdd">+ Dodaj talerz</button></div></div>`;
+ h+=`<div class="lbl">Talerze (sztuki łącznie)</div><div class="card" style="padding:4px 14px">${S.plates.slice().sort((a,b)=>b.kg-a.kg).map(p=>`<div class="item platerow"><button class="platedisc" data-act="plColor" data-v="${p.kg}" title="Zmień kolor">${discSVG(p.kg,42)}</button><div class="grow"><b>${fmt(p.kg)} kg</b><div class="small muted">${Math.floor(p.count/2)} ${pary(Math.floor(p.count/2))} · <button class="link small" data-act="plColor" data-v="${p.kg}">🎨 kolor</button></div></div><span class="stepper"><button data-act="plCnt" data-v="${p.kg}" data-d="-1">−</button><b>${p.count}</b><button data-act="plCnt" data-v="${p.kg}" data-d="1">+</button></span><button class="x" data-act="plRm" data-v="${p.kg}">×</button></div>${ui.plColorFor===p.kg?`<div class="colrow"><div class="small muted" style="margin-bottom:6px">Kolor talerza ${fmt(p.kg)} kg</div>${swatches(p.color||'','plSetColor',p.kg)}</div>`:''}`).join('')}
+ <div class="addplate"><div class="small muted" style="margin-bottom:8px;font-weight:600">Nowy talerz</div><div class="row" style="flex-wrap:nowrap"><span id="npPrev">${npPreview()}</span><input class="inline" id="newPlate" data-in="npKg" inputmode="decimal" placeholder="kg" value="${esc(ui.npKg||'')}"><button class="btn" data-act="plAdd">+ Dodaj talerz</button></div><div class="small muted" style="margin:10px 0 6px">Kolor nowego talerza</div>${swatches(ui.npColor||'','npColor','')}</div></div>`;
  h+=`<div class="lbl">Gryfy i rączki</div><div class="card" style="padding:4px 14px">${S.bars.map(b=>`<div class="item"><div class="icon">${IC.barbell}</div><input data-bar="${b.id}" data-k="name" value="${esc(b.name)}"><input class="inline" data-bar="${b.id}" data-k="kg" inputmode="decimal" value="${fmt(b.kg)}"><span class="small muted">kg</span><button class="x" data-act="barRm" data-id="${b.id}">×</button></div>`).join('')}
  <div class="item"><button class="btn" data-act="barAdd">+ Dodaj gryf</button></div></div>`;
  h+=`<div class="lbl">Hantle o stałej wadze</div><div class="card"><div class="chips wrap">${S.dumbbells.slice().sort((a,b)=>a-b).map(w=>`<span class="chip">${fmt(w)} kg <button data-act="dbRm" data-v="${w}" style="color:var(--mut);margin-left:4px">×</button></span>`).join('')||'<span class="muted small">brak</span>'}</div><div class="row" style="margin-top:10px"><input class="inline" id="newDb" inputmode="decimal" placeholder="kg"><button class="btn" data-act="dbAdd">+ Dodaj</button></div></div>`;
@@ -1135,7 +1145,10 @@ const ACT={
  setupDone:()=>{S.setupDone=true;ui.tab='train';touch();render();window.scrollTo(0,0)},
  plCnt:d=>{const p=S.plates.find(x=>x.kg===+d.v);p.count=Math.max(0,p.count+(+d.d));touch();render()},
  plRm:d=>{S.plates=S.plates.filter(x=>x.kg!==+d.v);touch();render()},
- plAdd:()=>{const k=num($('#newPlate').value);if(k<=0){toast('Podaj wagę talerza');return}if(S.plates.find(p=>p.kg===k)){toast('Taki talerz już jest – zmień liczbę sztuk');return}S.plates.push({kg:k,count:2});touch();render()},
+ plAdd:()=>{const k=num($('#newPlate').value);if(k<=0){toast('Podaj wagę talerza');return}if(S.plates.find(p=>p.kg===k)){toast('Taki talerz już jest – zmień liczbę sztuk albo kolor');return}const p={kg:k,count:2};if(ui.npColor)p.color=ui.npColor;S.plates.push(p);ui.npKg='';ui.npColor='';touch();toast('Dodano talerz '+fmt(k)+' kg');render()},
+ npColor:d=>{ui.npColor=d.c||'';render()},
+ plColor:d=>{ui.plColorFor=ui.plColorFor===+d.v?null:+d.v;render()},
+ plSetColor:d=>{const p=S.plates.find(x=>x.kg===+d.v);if(!p)return;if(d.c)p.color=d.c;else delete p.color;touch();render()},
  barAdd:()=>{S.bars.push({id:nid(),name:'Nowy gryf',kg:15});touch();render()},
  barRm:d=>{if(S.bars.length<=1){toast('Musi zostać przynajmniej jeden gryf');return}S.bars=S.bars.filter(b=>b.id!==d.id);touch();render()},
  dbAdd:()=>{const k=num($('#newDb').value);if(k<=0)return;if(!S.dumbbells.includes(k))S.dumbbells.push(k);touch();render()},
@@ -1148,6 +1161,7 @@ const ACT={
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-act]');if(!t||t.disabled)return;const f=ACT[t.dataset.act];if(f){ev.preventDefault();if(t.closest('.hist')&&t.dataset.act!=='openSes')ev.stopPropagation();f(t.dataset)}});
 document.addEventListener('input',ev=>{const t=ev.target;
  if(t.dataset.in==='planName')ui.plan.name=t.value;
+ if(t.dataset.in==='npKg'){ui.npKg=t.value;const pv=$('#npPrev');if(pv)pv.innerHTML=npPreview()}
  if(t.dataset.in==='finNote')ui.finNote=t.value;
  if(ui.edit){if(t.dataset.ed){const x=ui.edit.entries[+t.dataset.i].sets[+t.dataset.j];x[t.dataset.ed]=t.dataset.ed==='kg'?num(t.value):Math.max(0,Math.round(num(t.value)))}
   if(t.dataset.in==='edName')ui.edit.name=t.value;if(t.dataset.in==='edNote')ui.edit.note=t.value;
@@ -1160,7 +1174,7 @@ document.addEventListener('input',ev=>{const t=ev.target;
  if(t.dataset.in==='exName')ui.exEdit.name=t.value;
  if(t.dataset.in==='exNote')ui.exEdit.note=t.value;
  if(t.dataset.in==='exMax')ui.exEdit.max=Math.max(ui.exEdit.step||5,num(t.value));});
-document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.sched!=null){S.schedule[t.dataset.sched]=t.value||null;touch();toast('Harmonogram zapisany');return}if(t.dataset.bar){const b=S.bars.find(x=>x.id===t.dataset.bar);if(!b)return;if(t.dataset.k==='kg')b.kg=num(t.value);else b.name=t.value||'Gryf';touch()}});
+document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.colact){ACT[t.dataset.colact]({v:t.dataset.v,c:t.value});return}if(t.dataset.sched!=null){S.schedule[t.dataset.sched]=t.value||null;touch();toast('Harmonogram zapisany');return}if(t.dataset.bar){const b=S.bars.find(x=>x.id===t.dataset.bar);if(!b)return;if(t.dataset.k==='kg')b.kg=num(t.value);else b.name=t.value||'Gryf';touch()}});
 
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 $('#view').innerHTML='<div class="empty" style="padding-top:80px">Wczytywanie…</div>';
