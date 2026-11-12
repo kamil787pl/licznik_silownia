@@ -198,7 +198,7 @@ const NAVIC={
  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r=".6" fill="currentColor"/></svg>'
 };
 const TYPES={barbell:'Sztanga',dumbbell:'Hantle',machine:'Maszyna / wyciąg',bodyweight:'Masa ciała'};
-const MUSCLES=['Klatka','Plecy','Nogi','Pośladki','Barki','Biceps','Triceps','Brzuch','Inne'];
+const MUSCLES=['Klatka','Plecy','Nogi','Pośladki','Łydki','Barki','Biceps','Triceps','Przedramiona','Brzuch','Kardio','Inne'];
 
 /* ---------- talerze ---------- */
 const PC={25:'#d63031',20:'#2d6cdf',15:'#f2c200',10:'#27a35a',5:'#eceff3',2.5:'#3b3d45',2:'#3b3d45',1.25:'#b8bec7',1:'#b8bec7',0.5:'#d9a7c7'};
@@ -495,7 +495,7 @@ function vTrain(){
   h+=`<div class="card empty">${A.entries.length?'Wszystkie serie zaliczone! 🎉 Zakończ trening albo dodaj kolejne ćwiczenie.':'Dodaj pierwsze ćwiczenie do treningu.'}<br><br><button class="primary" data-act="addExActive">+ Dodaj ćwiczenie</button></div>`;
  }else{
   const e=A.entries[A.sel.e],ex=getEx(e.exId)||{name:'?',type:'bodyweight'},st=e.sets[A.sel.s];
-  h+=`<div class="card excard"><div class="row"><div class="icon">${IC[ex.type]}</div><div class="grow"><h3>${esc(ex.name)}</h3><div class="muted small">Seria ${A.sel.s+1} z ${e.sets.length} · cel ${e.target.reps} powt.</div></div></div>`;
+  h+=`<div class="card excard"><div class="row"><div class="icon">${IC[ex.type]}</div><div class="grow"><h3>${esc(ex.name)}</h3><div class="muted small">Seria ${A.sel.s+1} z ${e.sets.length} · cel ${e.target.reps} powt.</div>${ex.note?`<div class="small" style="color:var(--acc2)">📝 ${esc(ex.note)}</div>`:''}</div></div>`;
   h+=`<button class="loadbox" data-act="editLoad">${loadVisual(ex,st.cfg,false)}<div class="kg">${ex.type==='bodyweight'&&!st.kg?'BW':fmt(st.kg)}<small>${ex.type==='bodyweight'?(st.kg?'kg + BW':''):'kg'}${ex.type==='dumbbell'?' / hantel':''}</small></div><div class="hint">✎ stuknij, aby zmienić obciążenie</div></button>`;
   h+=`<div class="counter"><button class="cbtn" data-act="rep" data-v="-1">−</button><button class="cnum" data-act="rep" data-v="1"><span>${st.reps}</span><small>stuknij = +1 powtórzenie</small></button><button class="cbtn" data-act="rep" data-v="1">+</button></div>`;
   h+=`<div class="row" style="justify-content:center;margin-bottom:12px"><button class="chip" data-act="repSet" data-v="${e.target.reps}">Ustaw cel: ${e.target.reps}</button><button class="chip" data-act="repSet" data-v="0">Zeruj</button></div>`;
@@ -597,32 +597,40 @@ function vPlans(){
  S.plans.forEach(p=>{h+=`<div class="card"><div class="row"><div class="grow"><b>${esc(p.name)}</b></div><button class="btn" data-act="planEdit" data-id="${p.id}">Edytuj</button><button class="btn" data-act="planDup" data-id="${p.id}">Kopiuj</button></div>${p.items.map(it=>{const ex=getEx(it.exId)||{type:'bodyweight'};return `<div class="item"><div class="icon" style="width:30px;height:30px">${IC[ex.type]}</div><div class="grow small">${esc(exName(it.exId))}</div><b style="font-family:'Barlow Condensed';font-size:17px">${it.sets} × ${it.reps}</b></div>`}).join('')}</div>`});
  return h+`<button class="primary wide big" data-act="planNew">+ Nowy plan</button>`;
 }
+function renderExModal(){const x=ui.exEdit;modal(`<h3>Własne ćwiczenie</h3>${exForm(x)}<div class="row" style="position:sticky;bottom:-18px;background:var(--card);padding:12px 0 4px;margin-top:14px"><button class="btn" data-act="exModalCancel">← Wróć do listy</button><span class="grow"></span><button class="primary" data-act="exSave">Zapisz i dodaj</button></div>`)}
+const rEx=()=>ui.exModal?renderExModal():render();
+const newEx=()=>({id:nid(),name:'',type:'barbell',barId:(S.bars[0]||{}).id,muscle:'Inne',step:5,max:100,mode:'fixed',custom:true});
 function renderPicker(){
- const P=ui.pick;let h=`<h3>${P.mode==='plan'?'Wybierz ćwiczenia':'Dodaj ćwiczenie'}</h3><div class="chips" style="margin-bottom:10px"><button class="chip ${!P.f?'on':''}" data-act="pickF" data-v="">Wszystkie</button>${Object.keys(TYPES).map(t=>`<button class="chip ${P.f===t?'on':''}" data-act="pickF" data-v="${t}">${TYPES[t]}</button>`).join('')}</div>`;
+ const P=ui.pick;let h=`<h3>${P.mode==='plan'?'Wybierz ćwiczenia':'Dodaj ćwiczenie'}</h3><button class="ghost wide" style="margin-bottom:10px;color:var(--acc);border-color:var(--acc)" data-act="exNewPick">+ Utwórz własne ćwiczenie</button><div class="chips" style="margin-bottom:10px"><button class="chip ${!P.f?'on':''}" data-act="pickF" data-v="">Wszystkie</button>${Object.keys(TYPES).map(t=>`<button class="chip ${P.f===t?'on':''}" data-act="pickF" data-v="${t}">${TYPES[t]}</button>`).join('')}</div>`;
  const list=S.exercises.filter(e=>!P.f||e.type===P.f);
- const groups={};list.forEach(e=>{(groups[e.muscle||'Inne']=groups[e.muscle||'Inne']||[]).push(e)});
- Object.keys(groups).sort((a,b)=>MUSCLES.indexOf(a)-MUSCLES.indexOf(b)).forEach(g=>{h+=`<div class="lbl">${esc(g)}</div>`+groups[g].map(e=>`<button class="pick ${P.sel.includes(e.id)?'on':''}" data-act="pickT" data-id="${e.id}"><span class="icon">${IC[e.type]}</span><span><b>${esc(e.name)}</b><br><span class="small muted">${TYPES[e.type]}</span></span><span class="chk">${P.sel.includes(e.id)?'✓':''}</span></button>`).join('')});
- if(!list.length)h+='<div class="empty">Brak ćwiczeń. Dodaj je w zakładce Ćwiczenia.</div>';
+ const MY='★ Twoje własne',groups={};list.forEach(e=>{const g=e.custom?MY:(e.muscle||'Inne');(groups[g]=groups[g]||[]).push(e)});
+ Object.keys(groups).sort((a,b)=>(a===MY?-1:b===MY?1:MUSCLES.indexOf(a)-MUSCLES.indexOf(b))).forEach(g=>{h+=`<div class="lbl">${esc(g)}</div>`+groups[g].map(e=>`<button class="pick ${P.sel.includes(e.id)?'on':''}" data-act="pickT" data-id="${e.id}"><span class="icon">${IC[e.type]}</span><span><b>${esc(e.name)}</b><br><span class="small muted">${TYPES[e.type]}</span></span><span class="chk">${P.sel.includes(e.id)?'✓':''}</span></button>`).join('')});
+ if(!list.length)h+='<div class="empty">Brak ćwiczeń tego rodzaju – utwórz własne przyciskiem powyżej.</div>';
  h+=`<div class="row" style="position:sticky;bottom:-18px;background:var(--card);padding:12px 0 4px"><button class="btn" data-act="close">Anuluj</button><span class="grow"></span><button class="primary" data-act="pickOk" ${P.sel.length?'':'disabled style="opacity:.4"'}>Dodaj (${P.sel.length})</button></div>`;
  modal(h);
 }
 
 /* ---------- ćwiczenia ---------- */
-function vEx(){
- if(ui.exEdit){const x=ui.exEdit;
-  let h=`<div class="row"><button class="btn" data-act="exCancel">← Wróć</button></div><div class="lbl">Nazwa</div><input data-in="exName" value="${esc(x.name)}" placeholder="np. Wykroki z hantlami">`;
+function exForm(x){
+ let h=`<div class="lbl">Nazwa</div><input data-in="exName" maxlength="60" value="${esc(x.name)}" placeholder="np. Wykroki z hantlami">`;
   h+=`<div class="lbl">Rodzaj obciążenia</div><div class="tiles">${Object.keys(TYPES).map(t=>`<button class="tile ${x.type===t?'on':''}" data-act="exType" data-v="${t}">${IC[t]}${TYPES[t]}</button>`).join('')}</div>`;
   h+=`<div class="lbl">Partia mięśniowa</div><div class="chips wrap">${MUSCLES.map(m=>`<button class="chip ${x.muscle===m?'on':''}" data-act="exMuscle" data-v="${m}">${m}</button>`).join('')}</div>`;
   if(x.type==='barbell'||(x.type==='dumbbell'&&x.mode==='plates'))h+=`<div class="lbl">${x.type==='barbell'?'Domyślny gryf':'Rączka hantla'}</div><div class="chips wrap">${S.bars.map(b=>`<button class="chip ${x.barId===b.id?'on':''}" data-act="exBar" data-id="${b.id}">${esc(b.name)} · ${fmt(b.kg)} kg</button>`).join('')}</div>`;
   if(x.type==='dumbbell')h+=`<div class="lbl">Rodzaj hantli</div><div class="chips wrap"><button class="chip ${x.mode!=='plates'?'on':''}" data-act="exMode" data-v="fixed">Hantle stałe</button><button class="chip ${x.mode==='plates'?'on':''}" data-act="exMode" data-v="plates">Rączka + talerze</button></div>`;
   if(x.type==='machine')h+=`<div class="lbl">Stos maszyny</div><div class="row"><span class="small muted">Waga płytki</span><div class="chips">${[1,2.5,4.5,5,7,10].map(s=>`<button class="chip ${x.step===s?'on':''}" data-act="exStep" data-v="${s}">${fmt(s)} kg</button>`).join('')}</div></div><div class="row" style="margin-top:8px"><span class="small muted">Maksimum stosu (kg)</span><input class="inline" data-in="exMax" inputmode="decimal" value="${fmt(x.max||100)}"></div>`;
+ h+=`<div class="lbl">Notatka (opcjonalnie)</div><input data-in="exNote" maxlength="120" value="${esc(x.note||'')}" placeholder="np. ustawienie siedziska: 4, chwyt szeroki">`;
+ return h;
+}
+function vEx(){
+ if(ui.exEdit&&!ui.exModal){const x=ui.exEdit,isNew=!S.exercises.find(e=>e.id===x.id);
+  let h=`<div class="row"><button class="btn" data-act="exCancel">← Wróć</button></div><h2 style="margin-top:12px">${isNew?'Nowe ćwiczenie':'Edytuj ćwiczenie'}</h2>`+exForm(x);
   h+=`<div class="row" style="margin-top:20px">${S.exercises.find(e=>e.id===x.id)?`<button class="btn danger" data-act="exDel">Usuń</button>`:''}<span class="grow"></span><button class="primary" data-act="exSave">Zapisz ćwiczenie</button></div>`;
   return h;
  }
- let h=`<div class="hero"><h2>Ćwiczenia</h2><div class="muted">Twoja biblioteka. Rodzaj obciążenia decyduje, jak wybierasz ciężar.</div></div>`;
+ let h=`<div class="hero"><h2>Ćwiczenia</h2><div class="muted">Twoja biblioteka. Rodzaj obciążenia decyduje, jak wybierasz ciężar.</div></div><button class="primary wide big" style="margin-bottom:6px" data-act="exNew">+ Dodaj własne ćwiczenie</button>`;
  Object.keys(TYPES).forEach(t=>{const l=S.exercises.filter(e=>e.type===t);if(!l.length)return;
-  h+=`<div class="lbl">${TYPES[t]}</div><div class="card" style="padding:4px 14px">${l.map(e=>`<div class="item" data-act="exEdit" data-id="${e.id}" style="cursor:pointer"><div class="icon">${IC[e.type]}</div><div class="grow"><b>${esc(e.name)}</b><div class="small muted">${esc(e.muscle||'')}${e.type==='machine'?' · stos '+fmt(e.step)+' kg':''}${e.type==='dumbbell'?(e.mode==='plates'?' · rączka + talerze':' · hantle stałe'):''}</div></div><span class="muted">›</span></div>`).join('')}</div>`});
- return h+`<button class="primary wide big" data-act="exNew">+ Nowe ćwiczenie</button>`;
+  h+=`<div class="lbl">${TYPES[t]}</div><div class="card" style="padding:4px 14px">${l.map(e=>`<div class="item" data-act="exEdit" data-id="${e.id}" style="cursor:pointer"><div class="icon">${IC[e.type]}</div><div class="grow"><b>${esc(e.name)}</b>${e.custom?' <span class="tag">własne</span>':''}<div class="small muted">${esc(e.muscle||'')}${e.type==='machine'?' · stos '+fmt(e.step)+' kg':''}${e.type==='dumbbell'?(e.mode==='plates'?' · rączka + talerze':' · hantle stałe'):''}</div></div><span class="muted">›</span></div>`).join('')}</div>`});
+ return h+`<button class="ghost wide" data-act="exNew">+ Dodaj własne ćwiczenie</button>`;
 }
 
 /* ---------- postępy ---------- */
@@ -806,15 +814,22 @@ const ACT={
  pMove:d=>{const a=ui.plan.items,i=+d.i,j=i+(+d.v);if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];render()},
  pRm:d=>{ui.plan.items.splice(+d.i,1);render()},
  // ćwiczenia
- exNew:()=>{ui.exEdit={id:nid(),name:'',type:'barbell',barId:(S.bars[0]||{}).id,muscle:'Inne',step:5,max:100,mode:'fixed'};render()},
+ exNew:()=>{ui.tab='ex';ui.exModal=false;ui.exEdit=newEx();render();window.scrollTo(0,0)},
+ exNewPick:()=>{ui.pickBack=ui.pick;ui.exModal=true;ui.exEdit=newEx();renderExModal()},
+ exModalCancel:()=>{const P=ui.pickBack;ui.exModal=false;ui.exEdit=null;ui.pick=P;renderPicker()},
  exEdit:d=>{ui.exEdit=Object.assign({step:5,max:100,mode:'fixed'},clone(getEx(d.id)));render()},
  exCancel:()=>{ui.exEdit=null;render()},
- exType:d=>{ui.exEdit.type=d.v;if(d.v==='barbell'&&!ui.exEdit.barId)ui.exEdit.barId=(S.bars[0]||{}).id;render()},
- exMuscle:d=>{ui.exEdit.muscle=d.v;render()},
- exBar:d=>{ui.exEdit.barId=d.id;render()},
- exMode:d=>{ui.exEdit.mode=d.v;if(d.v==='plates')ui.exEdit.barId=(S.bars.find(b=>/rącz/i.test(b.name))||S.bars[S.bars.length-1]||{}).id;render()},
- exStep:d=>{ui.exEdit.step=+d.v;render()},
- exSave:()=>{const x=ui.exEdit;if(!x.name.trim()){toast('Podaj nazwę ćwiczenia');return}const i=S.exercises.findIndex(e=>e.id===x.id);i>=0?S.exercises[i]=x:S.exercises.push(x);ui.exEdit=null;touch();toast('Ćwiczenie zapisane');render()},
+ exType:d=>{ui.exEdit.type=d.v;if(d.v==='barbell'&&!ui.exEdit.barId)ui.exEdit.barId=(S.bars[0]||{}).id;rEx()},
+ exMuscle:d=>{ui.exEdit.muscle=d.v;rEx()},
+ exBar:d=>{ui.exEdit.barId=d.id;rEx()},
+ exMode:d=>{ui.exEdit.mode=d.v;if(d.v==='plates')ui.exEdit.barId=(S.bars.find(b=>/rącz/i.test(b.name))||S.bars[S.bars.length-1]||{}).id;rEx()},
+ exStep:d=>{ui.exEdit.step=+d.v;rEx()},
+ exSave:()=>{const x=ui.exEdit;x.name=(x.name||'').trim();if(!x.name){toast('Podaj nazwę ćwiczenia');return}
+  const isNew=!S.exercises.find(e=>e.id===x.id);if(S.exercises.some(e=>e.id!==x.id&&e.name.toLowerCase()===x.name.toLowerCase())){toast('Ćwiczenie o tej nazwie już istnieje');return}
+  if(x.type==='machine'&&(!x.max||x.max<(x.step||5)))x.max=(x.step||5)*20;
+  const i=S.exercises.findIndex(e=>e.id===x.id);i>=0?S.exercises[i]=x:S.exercises.push(x);touch();
+  if(ui.exModal){const P=ui.pickBack;ui.exModal=false;ui.exEdit=null;closeModal();ui.pick=P;if(P&&!P.sel.includes(x.id))P.sel.push(x.id);if(P){P.f='';renderPicker()}toast('Dodano: '+x.name);return}
+  ui.exEdit=null;toast(isNew?'Dodano własne ćwiczenie':'Ćwiczenie zapisane');render()},
  exDel:()=>ask('Usunąć ćwiczenie?','Zostanie też usunięte z planów. Zapisana historia pozostanie.','Usuń',()=>{const id=ui.exEdit.id;S.exercises=S.exercises.filter(e=>e.id!==id);S.plans.forEach(p=>p.items=p.items.filter(it=>it.exId!==id));ui.exEdit=null;touch();render()},true),
  // postępy
  progEx:d=>{ui.progEx=d.id;ui.pt=null;render()},
@@ -843,6 +858,7 @@ document.addEventListener('input',ev=>{const t=ev.target;
  if(t.dataset.in==='pH')ui.prof.height_cm=t.value;
  if(t.dataset.in==='pBirth')ui.prof.birth_date=t.value;
  if(t.dataset.in==='exName')ui.exEdit.name=t.value;
+ if(t.dataset.in==='exNote')ui.exEdit.note=t.value;
  if(t.dataset.in==='exMax')ui.exEdit.max=Math.max(ui.exEdit.step||5,num(t.value));});
 document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.bar){const b=S.bars.find(x=>x.id===t.dataset.bar);if(!b)return;if(t.dataset.k==='kg')b.kg=num(t.value);else b.name=t.value||'Gryf';touch()}});
 
