@@ -117,12 +117,36 @@ h3{font:700 19px/1.2 'Barlow Condensed';text-transform:uppercase;letter-spacing:
 .pick .chk{margin-left:auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;font-weight:800}
 .pick.on .chk{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
 /* rest */
-#rest{position:fixed;left:10px;right:10px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;max-width:620px;margin:0 auto;display:none;align-items:center;gap:10px;background:#1d2210;border:1px solid var(--acc);border-radius:14px;padding:10px 12px;overflow:hidden}
-#rest.on{display:flex}
-#rest .rbar{position:absolute;left:0;top:0;bottom:0;background:rgba(198,244,50,.13)}
-#rest span,#rest b,#rest button{position:relative}
-#rest b{font:700 26px 'Barlow Condensed';color:var(--acc);flex:1}
-#rest button{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-weight:600;font-size:13px}
+#rest{position:fixed;left:10px;right:10px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:7;max-width:620px;margin:0 auto;display:none;align-items:center;gap:12px;background:#171b10;border:1px solid var(--acc);border-radius:18px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#rest.on{display:flex;animation:up .25s ease-out}
+#rest .ring{width:78px;height:78px;flex:none}
+#rest .rt{fill:none;stroke:#2a3115;stroke-width:8}
+#rest .rp{fill:none;stroke:var(--acc);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .3s}
+#rest.warn .rp{stroke:var(--acc2)}#rest.warn{border-color:var(--acc2)}#rest.warn .rinfo b{color:var(--acc2)}
+#rest .rinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+#rest .rinfo b{font:700 34px/1 'Barlow Condensed';color:var(--acc)}
+#rest .rnext{color:var(--txt);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rest .rbtns{display:flex;flex-direction:column;gap:5px}
+#rest button{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-weight:600;font-size:12.5px}
+#rest .rskip{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+body.resting main{padding-bottom:260px}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+.sugg{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border-radius:12px;padding:10px 12px;margin:-4px 0 12px;background:var(--card2);border:1px solid var(--line);font-size:14px}
+.sugg>span:first-child{font-size:22px}.sugg small{color:var(--mut)}
+.sugg.up{border-color:var(--acc);background:#232912}.sugg.down{border-color:var(--acc2);background:#2a1d10}
+.sugg.ok{color:var(--acc);font-weight:600;font-size:13px;justify-content:center}
+.exnav{display:flex;align-items:center;justify-content:space-between;margin:-4px -4px 10px;font-size:12px}
+.exnav button{padding:6px 10px;border-radius:9px;color:var(--acc);font-weight:700;font-size:13px}.exnav button:disabled{opacity:.25}
+.slideL{animation:slL .22s ease-out}.slideR{animation:slR .22s ease-out}
+@keyframes slL{from{transform:translateX(40px);opacity:.3}}@keyframes slR{from{transform:translateX(-40px);opacity:.3}}
+.setrow.pop{animation:pop .5s ease-out}@keyframes pop{0%{transform:scale(.9);background:var(--acc)}60%{transform:scale(1.03)}}
+#flash{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;pointer-events:none}
+#flash.on{display:flex}
+#flash .fx{width:150px;height:150px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-size:84px;font-weight:800;animation:fx .9s ease-out forwards}
+#flash.pr .fx{width:auto;max-width:86vw;height:auto;border-radius:24px;padding:22px 28px;background:linear-gradient(150deg,#ff8a2a,#d63031);color:#fff;font:700 30px/1.1 'Barlow Condensed';text-align:center;animation:fxpr 2.2s ease-out forwards;box-shadow:0 0 0 8px rgba(255,138,42,.25)}
+#flash.pr .fx span{display:block;font-size:64px}#flash.pr .fx small{display:block;font:600 15px Inter;margin-top:6px;opacity:.9}
+@keyframes fx{0%{transform:scale(.3);opacity:0}30%{transform:scale(1.08);opacity:1}70%{transform:scale(1);opacity:1}100%{transform:scale(1.15);opacity:0}}
+@keyframes fxpr{0%{transform:scale(.3) rotate(-8deg);opacity:0}15%{transform:scale(1.1) rotate(2deg);opacity:1}25%{transform:scale(1) rotate(0)}85%{opacity:1}100%{transform:scale(1.05);opacity:0}}
 #toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-20px);opacity:0;transition:.25s;z-index:30;background:var(--acc);color:var(--acc-ink);font-weight:700;padding:10px 16px;border-radius:12px;pointer-events:none;max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%)}
 /* progres */
@@ -174,6 +198,7 @@ textarea{min-height:90px;font-size:12px}
 <nav id="nav"></nav>
 <div id="modal"></div>
 <div id="toast"></div>
+<div id="flash"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 'use strict';
@@ -492,6 +517,23 @@ function mkEntry(ex,sets,reps){const cfg=lastCfg(ex.id)||defaultCfg(ex);const kg
 function nextSel(A){for(let e=A.sel?A.sel.e:0;e<A.entries.length;e++){const i=A.entries[e].sets.findIndex(s=>!s.done);if(i>=0)return{e,s:i}}for(let e=0;e<A.entries.length;e++){const i=A.entries[e].sets.findIndex(s=>!s.done);if(i>=0)return{e,s:i}}return null}
 function bestBefore(exId,beforeId){let b=0;SES.forEach(s=>{if(s.id===beforeId)return;const e=s.entries.find(x=>x.exId===exId);if(e)e.sets.forEach(st=>{b=Math.max(b,e1(st.kg,st.reps))})});return b}
 const e1=(kg,r)=>r>0?kg*(1+r/30):0;
+function greedyPlates(per,m){const out=[];let rem=Math.round(per*1000)/1000;if(rem<-1e-6)return null;S.plates.slice().sort((a,b)=>b.kg-a.kg).forEach(p=>{let av=Math.floor(p.count/m);while(av>0&&p.kg<=rem+1e-6){out.push(p.kg);rem=Math.round((rem-p.kg)*1000)/1000;av--}});return Math.abs(rem)<1e-6?out:null}
+function cfgForKg(ex,base,kg){const c=clone(base);
+ if(ex.type==='barbell'||(ex.type==='dumbbell'&&c.mode==='plates')){const p=greedyPlates((kg-getBar(c.barId).kg)/2,mult(ex,c));if(!p)return null;c.plates=p;return c}
+ if(ex.type==='bodyweight'){const p=greedyPlates(kg,1);if(!p)return null;c.plates=p;return c}
+ if(ex.type==='machine'){const pin=Math.round(kg/(ex.step||5)),n=Math.round((ex.max||100)/(ex.step||5));if(pin<1||pin>n)return null;c.pin=pin;return c}
+ if(!S.dumbbells.includes(kg))return null;c.fixed=kg;return c}
+function shiftCfg(ex,c,dir){const kg=calcKg(ex,c);
+ if(ex.type==='dumbbell'&&c.mode!=='plates'){const ws=S.dumbbells.slice().sort((a,b)=>a-b);const w=dir>0?ws.find(x=>x>kg):ws.slice().reverse().find(x=>x<kg);return w!=null?cfgForKg(ex,c,w):null}
+ let st;if(ex.type==='machine')st=ex.step||5;else{const av=S.plates.filter(p=>p.count>=mult(ex,c)).map(p=>p.kg);if(!av.length)return null;st=Math.min(...av)*(ex.type==='bodyweight'?1:2)}
+ for(let k=1;k<=4;k++){const r=cfgForKg(ex,c,Math.round((kg+dir*st*k)*100)/100);if(r)return r}return null}
+function suggestion(e,A){const ex=getEx(e.exId);if(!ex)return null;const prev=lastSesEntry(e.exId,A.id);if(!prev||!prev.e.sets.length)return null;
+ const base=prev.e.sets[prev.e.sets.length-1].cfg;if(!base)return null;if(ex.type==='bodyweight'&&!(base.plates||[]).length)return null;
+ const tr=(prev.e.target&&prev.e.target.reps)||e.target.reps,ts=(prev.e.target&&prev.e.target.sets)||1,pk=calcKg(ex,base);
+ const ok=prev.e.sets.length>=ts&&prev.e.sets.every(s=>s.reps>=tr),bad=prev.e.sets.filter(s=>s.reps<tr-2).length>=Math.ceil(prev.e.sets.length/2);
+ if(ok){const c=shiftCfg(ex,base,1);return c?{cfg:c,kg:calcKg(ex,c),pk,dir:1,why:`ostatnio ${prev.e.sets.length}×${tr} zaliczone`}:null}
+ if(bad){const c=shiftCfg(ex,base,-1);return c?{cfg:c,kg:calcKg(ex,c),pk,dir:-1,why:'ostatnio zabrakło powtórzeń'}:null}
+ return{cfg:clone(base),kg:pk,pk,dir:0,why:'ostatnio nie wszystkie powtórzenia – powtórz ten ciężar'}}
 function vTrain(){
  const A=S.active;
  if(!A)return vHome();
@@ -501,12 +543,16 @@ function vTrain(){
   h+=`<div class="card empty">${A.entries.length?'Wszystkie serie zaliczone! 🎉 Zakończ trening albo dodaj kolejne ćwiczenie.':'Dodaj pierwsze ćwiczenie do treningu.'}<br><br><button class="primary" data-act="addExActive">+ Dodaj ćwiczenie</button></div>`;
  }else{
   const e=A.entries[A.sel.e],ex=getEx(e.exId)||{name:'?',type:'bodyweight'},st=e.sets[A.sel.s];
-  h+=`<div class="card excard"><div class="row"><div class="icon">${IC[ex.type]}</div><div class="grow"><h3>${esc(ex.name)}</h3><div class="muted small">Seria ${A.sel.s+1} z ${e.sets.length} · cel ${e.target.reps} powt.</div>${ex.note?`<div class="small" style="color:var(--acc2)">📝 ${esc(ex.note)}</div>`:''}</div></div>`;
+  const sl=ui.slide;ui.slide=0;const pop=ui.pop;ui.pop=null;
+  h+=`<div class="card excard ${sl>0?'slideL':sl<0?'slideR':''}"><div class="exnav"><button data-act="exNav" data-v="-1" ${A.sel.e>0?'':'disabled'}>‹ wstecz</button><span class="muted">${A.sel.e+1} / ${A.entries.length} · przesuń ⇆</span><button data-act="exNav" data-v="1" ${A.sel.e<A.entries.length-1?'':'disabled'}>dalej ›</button></div><div class="row"><div class="icon">${IC[ex.type]}</div><div class="grow"><h3>${esc(ex.name)}</h3><div class="muted small">Seria ${A.sel.s+1} z ${e.sets.length} · cel ${e.target.reps} powt.</div>${ex.note?`<div class="small" style="color:var(--acc2)">📝 ${esc(ex.note)}</div>`:''}</div></div>`;
   h+=`<button class="loadbox" data-act="editLoad">${loadVisual(ex,st.cfg,false)}<div class="kg">${ex.type==='bodyweight'&&!st.kg?'BW':fmt(st.kg)}<small>${ex.type==='bodyweight'?(st.kg?'kg + BW':''):'kg'}${ex.type==='dumbbell'?' / hantel':''}</small></div><div class="hint">✎ stuknij, aby zmienić obciążenie</div></button>`;
+  const sg=st.done?null:suggestion(e,A);
+  if(sg){const same=Math.abs(sg.kg-st.kg)<1e-6,dl=Math.round((sg.kg-sg.pk)*100)/100;
+   h+=same?`<div class="sugg ok">✓ ${sg.dir>0?'Ciężar z progresją':'Ciężar zgodny z sugestią'} · ${esc(sg.why)}</div>`:`<button class="sugg ${sg.dir>0?'up':sg.dir<0?'down':''}" data-act="applySugg"><span>${sg.dir>0?'📈':sg.dir<0?'📉':'↔️'}</span><span class="grow"><b>${sg.dir>0?'Spróbuj':'Proponuję'} ${fmt(sg.kg)} kg${dl?` (${dl>0?'+':''}${fmt(dl)} kg)`:''}</b><br><small>${esc(sg.why)} · stuknij, aby założyć</small></span></button>`}
   h+=`<div class="counter"><button class="cbtn" data-act="rep" data-v="-1">−</button><button class="cnum" data-act="rep" data-v="1"><span>${st.reps}</span><small>stuknij = +1 powtórzenie</small></button><button class="cbtn" data-act="rep" data-v="1">+</button></div>`;
   h+=`<div class="row" style="justify-content:center;margin-bottom:12px"><button class="chip" data-act="repSet" data-v="${e.target.reps}">Ustaw cel: ${e.target.reps}</button><button class="chip" data-act="repSet" data-v="0">Zeruj</button></div>`;
   h+=`<button class="primary big wide" data-act="doneSet">${st.done?'✓ Zapisz zmiany w serii '+(A.sel.s+1):'✓ Zalicz serię '+(A.sel.s+1)}</button>`;
-  h+=`<div style="margin-top:14px">${e.sets.map((s,i)=>`<div class="setrow ${i===A.sel.s?'sel':''} ${s.done?'done':''}" data-act="selSet" data-i="${i}"><span class="sn">${i+1}</span><span>${ex.type==='bodyweight'&&!s.kg?'masa ciała':fmt(s.kg)+' kg'}</span><span>× ${s.done?s.reps:'–'}</span><span class="ok">${s.done?'✓':''}</span><button class="x" data-act="rmSet" data-i="${i}" title="Usuń serię">×</button></div>`).join('')}</div>`;
+  h+=`<div style="margin-top:14px">${e.sets.map((s,i)=>`<div class="setrow ${i===A.sel.s?'sel':''} ${s.done?'done':''} ${pop&&pop.e===A.sel.e&&pop.s===i?'pop':''}" data-act="selSet" data-i="${i}"><span class="sn">${i+1}</span><span>${ex.type==='bodyweight'&&!s.kg?'masa ciała':fmt(s.kg)+' kg'}</span><span>× ${s.done?s.reps:'–'}</span><span class="ok">${s.done?'✓':''}</span><button class="x" data-act="rmSet" data-i="${i}" title="Usuń serię">×</button></div>`).join('')}</div>`;
   h+=`<div class="row" style="margin-top:8px"><button class="btn" data-act="addSet">+ seria</button><span class="grow"></span><button class="btn danger" data-act="rmEntry">Usuń ćwiczenie</button></div></div>`;
   const prev=lastSesEntry(e.exId,A.id);
   if(prev)h+=`<div class="card small"><span class="muted">Poprzednio (${dstr(prev.s.start)}):</span> ${prev.e.sets.map(s=>fmt(s.kg)+'×'+s.reps).join(', ')}</div>`;
@@ -563,7 +609,7 @@ function vHome(){
 function lastSesEntry(exId,skip){const ss=SES.filter(s=>s.id!==skip).sort((a,b)=>b.start-a.start);for(const s of ss){const e=s.entries.find(x=>x.exId===exId);if(e)return{s,e}}return null}
 function sesVol(s){return s.entries.reduce((a,e)=>a+e.sets.reduce((b,st)=>b+st.kg*st.reps,0),0)}
 function finishWorkout(){
- const A=S.active;const entries=A.entries.map(e=>({exId:e.exId,sets:e.sets.filter(s=>s.done).map(s=>({kg:s.kg,reps:s.reps,cfg:s.cfg}))})).filter(e=>e.sets.length);
+ const A=S.active;const entries=A.entries.map(e=>({exId:e.exId,target:e.target,sets:e.sets.filter(s=>s.done).map(s=>({kg:s.kg,reps:s.reps,cfg:s.cfg}))})).filter(e=>e.sets.length);
  S.active=null;
  if(!entries.length){touch();closeModal();toast('Brak zaliczonych serii – trening nie został zapisany');render();return}
  const ses={id:A.id,name:A.name,planId:A.planId,start:A.start,end:Date.now(),entries};
@@ -578,13 +624,23 @@ function finishWorkout(){
 
 /* ---------- przerwa ---------- */
 let rest=null,actx=null;
-function startRest(sec){rest={end:Date.now()+sec*1000,total:sec};renderRest(true)}
-function beep(){try{if(actx){[0,.35].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.3,actx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+t+.3);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.3)})}}catch(e){}try{navigator.vibrate&&navigator.vibrate([250,120,250])}catch(e){}}
-function renderRest(build){const el=$('#rest');if(!rest){el.className='';el.innerHTML='';return}
- if(build||!el.firstChild){el.innerHTML='<div class="rbar"></div><span>Przerwa</span><b></b><button data-act="restAdd">+15 s</button><button data-act="restSkip">Pomiń</button>';el.className='on'}
- const left=Math.max(0,Math.ceil((rest.end-Date.now())/1000));el.querySelector('b').textContent=mmss(left);el.querySelector('.rbar').style.width=(100*(1-left/rest.total))+'%'}
-setInterval(()=>{if(rest){if(Date.now()>=rest.end){rest=null;renderRest();beep();toast('Koniec przerwy – czas na serię! 💪')}else renderRest()}
+function startRest(sec,next){rest={end:Date.now()+sec*1000,total:sec,next:next||'',warned:sec<=15};renderRest(true)}
+function beep(n=2){try{if(actx){[0,.35].slice(0,n).forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;o.connect(g);g.connect(actx.destination);g.gain.setValueAtTime(.3,actx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+t+.3);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.3)})}}catch(e){}try{navigator.vibrate&&navigator.vibrate(n>1?[250,120,250]:[120])}catch(e){}}
+const RC=2*Math.PI*44;
+function renderRest(build){const el=$('#rest');document.body.classList.toggle('resting',!!rest);if(!rest){el.className='';el.innerHTML='';return}
+ if(build||!el.firstChild){el.innerHTML=`<svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="rt"/><circle cx="50" cy="50" r="44" class="rp" stroke-dasharray="${RC}" transform="rotate(-90 50 50)"/></svg><div class="rinfo"><span class="small muted">Przerwa</span><b></b><div class="small rnext"></div></div><div class="rbtns"><button data-act="restAdd" data-v="15">+15 s</button><button data-act="restAdd" data-v="-15">−15 s</button><button class="rskip" data-act="restSkip">Pomiń</button></div>`;el.className='on'}
+ const ms=Math.max(0,rest.end-Date.now()),left=Math.ceil(ms/1000);el.querySelector('.rinfo b').textContent=mmss(left);
+ el.querySelector('.rp').style.strokeDashoffset=RC*(1-ms/(rest.total*1000));el.classList.toggle('warn',left<=10);el.querySelector('.rnext').textContent=rest.next||''}
+setInterval(()=>{if(rest){if(Date.now()>=rest.end){rest=null;renderRest();beep();toast('Koniec przerwy – czas na serię! 💪')}else{if(!rest.warned&&rest.end-Date.now()<=10000){rest.warned=true;beep(1)}renderRest()}}
  const el=$('#elapsed');el.textContent=S.active?mmss(Math.floor((Date.now()-S.active.start)/1000)):''},250);
+let ftm;function flash(html,cls){const f=$('#flash');f.className='';void f.offsetWidth;f.innerHTML=`<div class="fx">${html}</div>`;f.className='on '+(cls||'');clearTimeout(ftm);ftm=setTimeout(()=>{f.className='';f.innerHTML=''},cls==='pr'?2300:950)}
+function swipeEx(dir){const A=S.active;if(!A||!A.sel)return;const i=A.sel.e+dir;if(i<0||i>=A.entries.length)return;const e=A.entries[i];const j=e.sets.findIndex(s=>!s.done);A.sel={e:i,s:j>=0?j:Math.max(0,e.sets.length-1)};ui.slide=dir;touch();render()}
+let tsx=null,tsy=0;
+document.addEventListener('touchstart',ev=>{tsx=ev.target.closest('.excard')&&ev.touches.length===1?ev.touches[0].clientX:null;if(tsx!=null)tsy=ev.touches[0].clientY},{passive:true});
+document.addEventListener('touchend',ev=>{if(tsx==null)return;const t=ev.changedTouches[0],dx=t.clientX-tsx,dy=t.clientY-tsy;tsx=null;if(Math.abs(dx)>70&&Math.abs(dy)<60)swipeEx(dx<0?1:-1)},{passive:true});
+let wl=null,wlBusy=false;
+async function syncWake(){if(wlBusy)return;wlBusy=true;try{if(S.active&&document.visibilityState==='visible'){if(!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}}else if(wl){await wl.release();wl=null}}catch(e){wl=null}wlBusy=false}
+document.addEventListener('visibilitychange',syncWake);
 let tt;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2600)}
 
 /* ---------- plany ---------- */
@@ -739,6 +795,7 @@ function render(){
  const v={train:vTrain,plans:vPlans,ex:vEx,prog:vProg,gear:vGear,profile:vProfile}[ui.tab]();
  const me=$('#me');me.innerHTML=user&&PROF?`<span class="av" style="background:${safeColor(PROF.avatar_color)}">${esc(PROF.avatar_emoji||'💪')}</span>`:'<span class="av guest">?</span>';
  $('#view').innerHTML=v;
+ syncWake();
 }
 
 /* ---------- akcje ---------- */
@@ -773,7 +830,7 @@ const ACT={
  quickHist:()=>{ui.tab='prog';render();setTimeout(()=>{const el=[...document.querySelectorAll('.lbl')].find(x=>/Historia/.test(x.textContent));el&&el.scrollIntoView({behavior:'smooth'})},30)},
  progGo:d=>{ui.tab='prog';ui.progEx=d.id;ui.pt=null;render();window.scrollTo(0,0)},
  confirm:()=>{const f=ui.confirmFn;closeModal();f&&f()},
- start:d=>{if(S.active){toast('Trening już trwa');return}startWorkout(d.id||null)},
+ start:d=>{if(S.active){toast('Trening już trwa');return}startWorkout(d.id||null);window.scrollTo(0,0)},
  selEx:d=>{const A=A_(),e=A.entries[+d.i];const i=e.sets.findIndex(s=>!s.done);A.sel={e:+d.i,s:i>=0?i:Math.max(0,e.sets.length-1)};touch();render()},
  selSet:d=>{S.active.sel.s=+d.i;touch();render()},
  rep:d=>{const st=curSet();st.reps=Math.max(0,st.reps+(+d.v));if(+d.v>0)try{navigator.vibrate&&navigator.vibrate(15)}catch(e){};touch();render()},
@@ -781,16 +838,25 @@ const ACT={
  editLoad:()=>{const e=curEntry(),ex=getEx(e.exId),si=S.active.sel.s;openLoader(ex,e.sets[si].cfg,cfg=>{const kg=calcKg(ex,cfg);e.sets.forEach((s,i)=>{if(i===si||(i>si&&!s.done)){s.cfg=clone(cfg);s.kg=kg}});touch();render()})},
  doneSet:()=>{try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();actx.resume&&actx.resume()}catch(e){}
   const A=A_(),e=curEntry(),st=curSet();if(!st.reps){toast('Policz powtórzenia – stuknij duży licznik');return}
-  const wasDone=st.done;st.done=true;st.at=Date.now();
-  if(!wasDone){startRest(S.settings.rest);const n=nextSel(A);if(n&&n.e!==A.sel.e)toast('Ćwiczenie ukończone ✓ Następne: '+exName(A.entries[n.e].exId));if(n){const ns=A.entries[n.e].sets[n.s];if(n.e===A.sel.e&&!ns.reps)ns.reps=0}A.sel=n}
+  const wasDone=st.done,si=A.sel.s,ei=A.sel.e;
+  const prevBest=Math.max(bestBefore(e.exId,A.id),...e.sets.filter((s,i)=>s.done&&i!==si).map(s=>e1(s.kg,s.reps)),0),hadHist=bestBefore(e.exId,A.id)>0;
+  st.done=true;st.at=Date.now();
+  const v=e1(st.kg,st.reps);
+  if(hadHist&&v>prevBest+1e-6){flash(`<span>🏆</span>NOWY REKORD!<small>${esc(exName(e.exId))} · ${fmt(st.kg)} kg × ${st.reps} · 1RM ≈ ${fmt(Math.round(v))} kg</small>`,'pr');try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch(x){}}
+  else flash('✓');
+  if(!wasDone){ui.pop={e:ei,s:si};const n=nextSel(A);if(n&&n.e!==ei)toast('Ćwiczenie ukończone ✓ Następne: '+exName(A.entries[n.e].exId));A.sel=n;
+   let nx='';if(n){const ne=A.entries[n.e],ns=ne.sets[n.s];nx='Dalej: '+exName(ne.exId)+' · seria '+(n.s+1)+' · '+(ns.kg?fmt(ns.kg)+' kg':'masa ciała')}
+   startRest(S.settings.rest,nx)}
   touch();render()},
+ exNav:d=>swipeEx(+d.v),
+ applySugg:()=>{const A=A_(),e=curEntry(),ex=getEx(e.exId),sg=suggestion(e,A);if(!sg)return;const si=A.sel.s;e.sets.forEach((s,i)=>{if(i===si||(i>si&&!s.done)){s.cfg=clone(sg.cfg);s.kg=sg.kg}});toast('Założono '+fmt(sg.kg)+' kg');touch();render()},
  addSet:()=>{const e=curEntry(),l=e.sets[e.sets.length-1];e.sets.push({cfg:clone(l?l.cfg:defaultCfg(getEx(e.exId))),kg:l?l.kg:0,reps:0,done:false});S.active.sel.s=e.sets.length-1;touch();render()},
  rmSet:d=>{const A=A_(),e=curEntry();e.sets.splice(+d.i,1);if(!e.sets.length){A.entries.splice(A.sel.e,1);A.sel=nextSel(Object.assign(A,{sel:null}))}else A.sel.s=Math.min(A.sel.s,e.sets.length-1);touch();render()},
  rmEntry:()=>ask('Usunąć ćwiczenie?','Ćwiczenie i jego serie zostaną usunięte z tego treningu.','Usuń',()=>{const A=A_();A.entries.splice(A.sel.e,1);A.sel=null;A.sel=nextSel(A);touch();render()},true),
  addExActive:()=>{ui.pick={mode:'active',sel:[],f:''};renderPicker()},
  finish:()=>{const n=S.active.entries.reduce((a,e)=>a+e.sets.filter(s=>s.done).length,0);ask('Zakończyć trening?',`Zaliczone serie: <b>${n}</b>. Niezaliczone serie nie zostaną zapisane.`,'Zakończ i zapisz',finishWorkout)},
  abandon:()=>ask('Porzucić trening?','Trening nie zostanie zapisany.','Porzuć',()=>{S.active=null;rest=null;renderRest();touch();render()},true),
- restAdd:()=>{if(rest){rest.end+=15000;rest.total+=15;renderRest()}},
+ restAdd:d=>{if(rest){const v=+(d.v||15);rest.end+=v*1000;if(v>0){rest.total+=v;if(rest.end-Date.now()>10000)rest.warned=false}renderRest()}},
  restSkip:()=>{rest=null;renderRest()},
  // loader
  ldAdd:d=>{L.cfg.plates.push(+d.v);L.cfg.plates.sort((a,b)=>b-a);renderLoader()},
