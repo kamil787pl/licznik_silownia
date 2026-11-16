@@ -1,9 +1,9 @@
 // Licznik siłownia – service worker: aplikacja działa bez internetu.
 // Strona: najpierw sieć (max 3 s), potem kopia z telefonu. Biblioteki, czcionki, ikony: kopia z telefonu + odświeżanie w tle.
 // Zapytania do Supabase nie są przechowywane – dane synchronizuje sama aplikacja.
-const V = 'licznik-v2';
+const V = 'licznik-v3';
 const SB_LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
-const SHELL = ['./', './index.html', './favicon.svg', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png', SB_LIB];
+const SHELL = ['./', './index.html', './favicon.svg', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png', SB_LIB];
 
 self.addEventListener('install', e => {
   e.waitUntil(

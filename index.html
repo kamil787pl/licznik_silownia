@@ -10,6 +10,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Siłownia">
 <title>Licznik siłownia</title>
+<meta name="description" content="Licz powtórzenia, zakładaj talerze jednym stuknięciem i śledź postępy. Darmowa aplikacja na siłownię – działa offline.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kamil787pl.github.io/licznik_silownia/">
+<meta property="og:title" content="Licznik siłownia">
+<meta property="og:description" content="Licz powtórzenia, zakładaj talerze jednym stuknięciem i śledź postępy. Darmowa aplikacja – działa offline.">
+<meta property="og:image" content="https://kamil787pl.github.io/licznik_silownia/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="pl_PL">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -247,6 +257,10 @@ body.acting.resting main{padding-bottom:calc(var(--abh,150px) + var(--navh,62px)
 .prow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.prow:last-of-type{border-bottom:0}.pmain{flex:1;display:flex;align-items:center;gap:10px;text-align:left;min-width:0}.pmain b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmain small{font-size:12px}.chev{color:var(--mut);font-size:14px;padding:0 4px}
 .pstart{width:46px;height:42px;padding:0;font-size:16px;border-radius:12px;flex:none}
 .citem{cursor:pointer;padding:10px 0}.citem .grow{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.citem>span:first-child{font-size:18px;width:26px;text-align:center}.citem b{font-size:14px}.citem small{font-size:12px}.cval{font:700 18px 'Barlow Condensed';white-space:nowrap}
+#inapp{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top) + 24px) 20px 30px}
+.iabox{max-width:420px;margin:0 auto;text-align:center}.iabox .logo{width:76px;height:76px;margin:10px auto 6px;border-radius:20px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--acc)}.iabox .logo svg{width:52px;height:36px}
+.iabtn{display:block;text-decoration:none;margin-top:18px;text-align:center}.iahelp{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--mut);text-align:left;line-height:1.5}.iahelp b{color:var(--txt)}
+.instb{display:flex;align-items:center;gap:10px;background:linear-gradient(140deg,#232912,#181b22);border:1px solid #3c4a12;border-radius:14px;padding:12px;margin:0 0 12px}.instb b{font-size:15px}.instb .primary{padding:9px 14px;flex:none}.shr{display:inline-block;border:1.5px solid var(--acc);border-radius:5px;padding:0 4px;font-size:12px;color:var(--acc)}
 .inline{width:90px}
 textarea{min-height:90px;font-size:12px}
 </style>
@@ -706,12 +720,13 @@ function vMonth(inl){const d=new Date();let y=d.getFullYear(),m=d.getMonth(),cur
  ${cur.prList.length?`<div class="small muted" style="margin-top:10px">🏆 ${cur.prList.slice(0,4).map(id=>esc(exName(id))).join(', ')}${cur.prList.length>4?' i inne':''}</div>`:''}
  ${prev.n&&isCur?`<div class="small muted" style="margin-top:6px">Zmiany względem całego poprzedniego miesiąca.</div>`:''}</div>`}
 function vHome(){
+ const IB=typeof installBanner==='function'?installBanner():'';
  const now=Date.now(),ws=weekStart(now),wk=SES.filter(s=>s.start>=ws),last=SES.slice().sort((a,b)=>b.start-a.start)[0];
  const wkVol=wk.reduce((a,s)=>a+sesVol(s),0),wkSets=wk.reduce((a,s)=>a+s.entries.reduce((b,e)=>b+work(e.sets).length,0),0);
  let streak=0;{let w=ws;if(!wk.length)w-=7*864e5;while(SES.some(s=>s.start>=w&&s.start<w+7*864e5)){streak++;w-=7*864e5}}
  const hr=new Date().getHours(),hi=hr<12?'Dzień dobry':hr<18?'Cześć':'Dobry wieczór',nm=(typeof PROF!=='undefined'&&PROF&&PROF.display_name)?', '+esc(PROF.display_name):'';
  const dateTxt=new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
- let h=`<div class="hero hcomp"><div class="muted small">${dateTxt.charAt(0).toUpperCase()+dateTxt.slice(1)}${last?` · ostatni trening ${agoTxt(daysAgo(last.start))}`:''}</div><h2>${hi}${nm}! 💪</h2></div>`;
+ let h=`<div class="hero hcomp"><div class="muted small">${dateTxt.charAt(0).toUpperCase()+dateTxt.slice(1)}${last?` · ostatni trening ${agoTxt(daysAgo(last.start))}`:''}</div><h2>${hi}${nm}! 💪</h2></div>`+IB;
  // DZIŚ
  const dayHas=i=>SES.some(s=>s.start>=ws+i*864e5&&s.start<ws+(i+1)*864e5),today=(new Date().getDay()+6)%7;
  const sch=S.schedule||{},hasSch=Object.values(sch).some(Boolean);
@@ -1021,6 +1036,10 @@ const curSet=()=>{const e=curEntry();return e?e.sets[S.active.sel.s]:null};
 const ACT={
  tab:d=>{if(d.v==='sched'&&ui.tab!=='sched')ui.schedBack=ui.tab;ui.tab=d.v;if(d.v==='profile')ui.prof=null;if(d.v==='gear')ui.touchedGear=true;ui.pt=null;closeModal();render();window.scrollTo(0,0)},
  hpToggle:d=>{ui.hp=ui.hp===d.id?null:d.id;render()},
+ install:async()=>{if(!installEvt){toast('Użyj menu przeglądarki: „Zainstaluj aplikację”');return}installEvt.prompt();try{const r=await installEvt.userChoice;if(r&&r.outcome==='accepted')try{localStorage.setItem('inst_done','1')}catch(e){}}catch(e){}installEvt=null;render()},
+ instHide:()=>{try{localStorage.setItem('inst_hide','1')}catch(e){}render()},
+ iaStay:()=>{sessionStorage.setItem('ia_stay','1');const o=$('#inapp');if(o)o.remove()},
+ iaCopy:()=>{navigator.clipboard.writeText(APP_URL).then(()=>toast('Skopiowano link – wklej go w przeglądarce'),()=>toast(APP_URL))},
  close:()=>{if(ui.edit)ui.edit=null;closeModal()},
  home:()=>{closeModal();ui.edit=null;ui.plan=null;ui.exEdit=null;ui.exModal=false;ui.tab='train';ui.pt=null;render();window.scrollTo({top:0,behavior:'smooth'})},
  schedDay:d=>renderSchedPick(+d.v),
@@ -1201,6 +1220,35 @@ document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset.colact){A
 
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 $('#view').innerHTML='<div class="empty" style="padding-top:80px">Wczytywanie…</div>';
+/* ---------- przeglądarka Messengera / Facebooka i instalacja ---------- */
+const UA=navigator.userAgent||'',IS_IOS=/iPhone|iPad|iPod/i.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),IS_AND=/Android/i.test(UA);
+const IN_APP=/FBAN|FBAV|FB_IAB|FBIOS|FB4A|Messenger|MessengerForiOS|Instagram|Line\/|MicroMessenger|Snapchat|TikTok|musical_ly/i.test(UA);
+const STANDALONE=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const APP_URL=location.origin+location.pathname;
+const intentUrl=()=>'intent://'+location.host+location.pathname+'#Intent;scheme=https;S.browser_fallback_url='+encodeURIComponent(APP_URL)+';end';
+function showInApp(){
+ const o=document.createElement('div');o.id='inapp';
+ o.innerHTML=`<div class="iabox"><div class="logo">${IC.barbell}</div><h2>Otwórz w przeglądarce</h2>
+ <p class="muted">Otwierasz aplikację w przeglądarce ${/Instagram/i.test(UA)?'Instagrama':'Messengera'}. Żeby ją <b style="color:var(--txt)">zainstalować</b> i żeby dane nie zginęły, otwórz ją w ${IS_IOS?'Safari':'Chrome'}.</p>
+ ${IS_AND?`<a class="primary big wide iabtn" href="${intentUrl()}">Otwórz w Chrome</a>`:`<a class="primary big wide iabtn" href="x-safari-${APP_URL}">Otwórz w Safari</a>`}
+ <div class="iahelp"><b>Przycisk nie działa?</b><br>${IS_IOS?'Stuknij <b>⋯</b> (lub ikonę kompasu) w prawym górnym albo dolnym rogu i wybierz <b>„Otwórz w Safari”</b> / <b>„Otwórz w przeglądarce zewnętrznej”</b>.':'Stuknij <b>⋮</b> w prawym górnym rogu i wybierz <b>„Otwórz w Chrome”</b> / <b>„Otwórz w przeglądarce”</b>.'}</div>
+ <button class="btn wide" style="margin-top:10px" data-act="iaCopy">📋 Kopiuj link do aplikacji</button>
+ <button class="link wide" style="margin-top:14px" data-act="iaStay">Mimo to kontynuuj tutaj</button></div>`;
+ document.body.appendChild(o);
+}
+if(IN_APP&&!sessionStorage.getItem('ia_stay')){
+ showInApp();
+ if(IS_AND&&!sessionStorage.getItem('ia_tried')){sessionStorage.setItem('ia_tried','1');setTimeout(()=>{location.href=intentUrl()},300)}
+}
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(ui.tab==='train'&&!S.active)render()});
+window.addEventListener('appinstalled',()=>{installEvt=null;try{localStorage.setItem('inst_done','1')}catch(e){}toast('Zainstalowano – aplikacja jest na ekranie głównym 🎉');render()});
+function installBanner(){
+ if(STANDALONE()||IN_APP)return'';try{if(localStorage.getItem('inst_hide')==='1'||localStorage.getItem('inst_done')==='1')return''}catch(e){}
+ if(installEvt)return `<div class="instb"><div class="grow"><b>📲 Zainstaluj aplikację</b><div class="small muted">Ikona na ekranie głównym, pełny ekran i działanie offline.</div></div><button class="primary" data-act="install">Zainstaluj</button><button class="x" data-act="instHide" aria-label="Ukryj">×</button></div>`;
+ if(IS_IOS&&/Safari/i.test(UA)&&!/CriOS|FxiOS|EdgiOS/i.test(UA))return `<div class="instb"><div class="grow"><b>📲 Dodaj do ekranu początkowego</b><div class="small muted">Stuknij <b style="color:var(--txt)">Udostępnij</b> <span class="shr">⬆︎</span> na dole Safari, potem <b style="color:var(--txt)">„Do ekranu początkowego”</b>.</div></div><button class="x" data-act="instHide" aria-label="Ukryj">×</button></div>`;
+ return'';
+}
 boot();
 </script>
 </body>
